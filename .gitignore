@@ -152,7 +152,6 @@ Thumbs.db
 
 # uv specific
 .venv/
-uv.lock
 
 # Alembic (database migrations)
 alembic/versions/__pycache__/
@@ -167,8 +166,6 @@ src/chemlit_extractor/static/build/
 # RDKit cache
 .rdkit_cache/
 
-# Jupyter notebooks (if any)
-*.ipynb
 
 # Downloaded articles and papers
 *.pdf

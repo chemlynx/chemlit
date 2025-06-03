@@ -91,12 +91,15 @@ strict_equality = true
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_functions = ["test_*"]
-addopts = [
-  "--strict-markers",
-  "--strict-config",
-  "--cov=src",
-  "--cov-report=term-missing",
-  "--cov-report=html",
+addopts = ["--strict-markers", "--strict-config", "--tb=short", "-v"]
+markers = [
+  "integration: mark test as integration test (requires real database)",
+  "slow: mark test as slow running",
+  "unit: mark test as unit test (default)",
+]
+filterwarnings = [
+  "ignore::DeprecationWarning",
+  "ignore::PendingDeprecationWarning",
 ]
 
 [tool.coverage.run]

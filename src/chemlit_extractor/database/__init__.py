@@ -15,16 +15,28 @@ from chemlit_extractor.database.models import (
     CompoundProperty,
     article_authors,
 )
+from chemlit_extractor.database.crud import (
+    ArticleCRUD,
+    AuthorCRUD,
+    CompoundCRUD,
+    CompoundPropertyCRUD,
+    get_database_stats,
+)
 
 __all__ = [
     "Article",
+    "ArticleCRUD",
     "Author",
+    "AuthorCRUD",
     "Base",
     "Compound",
+    "CompoundCRUD",
     "CompoundProperty",
+    "CompoundPropertyCRUD",
     "article_authors",
     "create_tables",
     "engine",
+    "get_database_stats",
     "get_db",
     "get_db_session",
     "SessionLocal",
