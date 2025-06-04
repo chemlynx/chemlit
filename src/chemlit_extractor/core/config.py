@@ -1,7 +1,6 @@
 """Configuration management for ChemLit Extractor."""
 
 from pathlib import Path
-from typing import Literal
 
 from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -23,6 +22,15 @@ class Settings(BaseSettings):
 
     # FastAPI Configuration
     debug: bool = Field(default=False, description="Enable debug mode")
+
+    # CrossRef API Configuration
+    crossref_rate_limit: int = Field(
+        default=10, description="CrossRef API rate limit (requests per minute)"
+    )
+    crossref_user_agent: str = Field(
+        default="ChemLitExtractor/0.1.0 (mailto:user@example.com)",
+        description="User agent for CrossRef API requests",
+    )
 
     # File Storage Configuration
     data_root_path: Path = Field(

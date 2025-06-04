@@ -1,12 +1,10 @@
 """SQLAlchemy database models."""
 
 from datetime import datetime
-from typing import List
 
 from sqlalchemy import (
     Column,
     DateTime,
-    Enum,
     Float,
     ForeignKey,
     Integer,
@@ -47,7 +45,7 @@ class Author(Base):
     )
 
     # Relationships
-    articles: Mapped[List["Article"]] = relationship(
+    articles: Mapped[list["Article"]] = relationship(
         "Article", secondary=article_authors, back_populates="authors"
     )
 
@@ -77,10 +75,10 @@ class Article(Base):
     )
 
     # Relationships
-    authors: Mapped[List[Author]] = relationship(
+    authors: Mapped[list[Author]] = relationship(
         Author, secondary=article_authors, back_populates="articles"
     )
-    compounds: Mapped[List["Compound"]] = relationship(
+    compounds: Mapped[list["Compound"]] = relationship(
         "Compound", back_populates="article", cascade="all, delete-orphan"
     )
 
@@ -111,7 +109,7 @@ class Compound(Base):
 
     # Relationships
     article: Mapped[Article] = relationship("Article", back_populates="compounds")
-    properties: Mapped[List["CompoundProperty"]] = relationship(
+    properties: Mapped[list["CompoundProperty"]] = relationship(
         "CompoundProperty", back_populates="compound", cascade="all, delete-orphan"
     )
 

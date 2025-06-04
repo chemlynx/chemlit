@@ -1,11 +1,18 @@
 """Database package initialization."""
 
 from chemlit_extractor.database.connection import (
+    SessionLocal,
     create_tables,
+    engine,
     get_db,
     get_db_session,
-    engine,
-    SessionLocal,
+)
+from chemlit_extractor.database.crud import (
+    ArticleCRUD,
+    AuthorCRUD,
+    CompoundCRUD,
+    CompoundPropertyCRUD,
+    get_database_stats,
 )
 from chemlit_extractor.database.models import (
     Article,
@@ -14,13 +21,6 @@ from chemlit_extractor.database.models import (
     Compound,
     CompoundProperty,
     article_authors,
-)
-from chemlit_extractor.database.crud import (
-    ArticleCRUD,
-    AuthorCRUD,
-    CompoundCRUD,
-    CompoundPropertyCRUD,
-    get_database_stats,
 )
 
 __all__ = [

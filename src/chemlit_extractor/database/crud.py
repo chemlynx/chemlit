@@ -1,8 +1,7 @@
 """CRUD operations for database models."""
 
-from typing import Any
 
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, selectinload
 
 from chemlit_extractor.database.models import (

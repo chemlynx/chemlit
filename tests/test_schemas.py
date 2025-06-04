@@ -14,13 +14,9 @@ src_path = project_root / "src"
 sys.path.insert(0, str(src_path))
 
 from chemlit_extractor.models.schemas import (
-    Article,
     ArticleCreate,
-    Author,
     AuthorCreate,
-    Compound,
     CompoundCreate,
-    CompoundProperty,
     CompoundPropertyCreate,
     ExtractionMethod,
 )

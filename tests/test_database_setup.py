@@ -4,13 +4,9 @@ import pytest
 from pydantic import ValidationError
 
 from chemlit_extractor.models.schemas import (
-    Article,
     ArticleCreate,
-    Author,
     AuthorCreate,
-    Compound,
     CompoundCreate,
-    CompoundProperty,
     CompoundPropertyCreate,
     ExtractionMethod,
 )
