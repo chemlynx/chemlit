@@ -1,6 +1,5 @@
 """CRUD operations for database models."""
 
-
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, selectinload
 
@@ -369,6 +368,12 @@ class AuthorCRUD:
             Total number of authors.
         """
         return db.query(Author).count()
+
+
+@classmethod
+def count(cls, db: Session) -> int:
+    """Get total count of authors."""
+    return db.query(cls.model).count()
 
 
 class CompoundCRUD:

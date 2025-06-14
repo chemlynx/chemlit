@@ -2,7 +2,13 @@
 
 from fastapi import APIRouter
 
-from chemlit_extractor.api.v1.endpoints import articles, authors, compounds, stats
+from chemlit_extractor.api.v1.endpoints import (
+    articles,
+    authors,
+    compounds,
+    files,
+    stats,
+)
 
 api_router = APIRouter()
 
@@ -29,4 +35,10 @@ api_router.include_router(
     compounds.router,
     prefix="/compounds",
     tags=["compounds"],
+)
+
+api_router.include_router(
+    files.router,
+    prefix="/files",
+    tags=["files"],
 )

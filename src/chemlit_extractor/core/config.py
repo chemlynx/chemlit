@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     articles_path: Path = Field(
         default=Path("./data/articles"), description="Path for article storage"
     )
+    max_file_size_mb: int = Field(default=100, description="Maximum file size in MB")
 
     @computed_field
     @property

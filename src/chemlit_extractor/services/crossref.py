@@ -6,7 +6,7 @@ from typing import Any
 
 import httpx
 from pydantic import ValidationError
-
+from .simple_journal_mapper import enhance_article_with_journal_mapping
 from chemlit_extractor.core.config import settings
 from chemlit_extractor.models.schemas import (
     ArticleCreate,
@@ -287,8 +287,33 @@ class CrossRefService:
         # Convert CrossRef data to our schemas
         article_data = self._convert_crossref_to_article(crossref_data)
         authors_data = self._convert_crossref_to_authors(crossref_data)
-
+        article_data = enhance_article_with_journal_mapping(article_data, doi)
         return article_data, authors_data
+
+    def extract_year(self, crossref_data):
+        """Extract year from CrossRef data."""
+        for field_name in [
+            "published",
+            "published_online",
+            "issued",
+            "published_print",
+        ]:
+            if hasattr(crossref_data, field_name):
+                date_value = getattr(crossref_data, field_name)
+                if (
+                    date_value
+                    and isinstance(date_value, dict)
+                    and "date-parts" in date_value
+                ):
+                    date_parts = date_value["date-parts"]
+                    if date_parts and len(date_parts) > 0 and len(date_parts[0]) > 0:
+                        try:
+                            return int(date_parts[0][0])
+                        except (ValueError, TypeError):
+                            continue
+        return None
+
+    # Then use it in your conversion:
 
     def _convert_crossref_to_article(
         self, crossref_data: CrossRefResponse
@@ -304,29 +329,26 @@ class CrossRefService:
         """
         # Extract title (CrossRef returns list, we want first one)
         title = "Unknown Title"
-        if crossref_data.title and len(crossref_data.title) > 0:
+        if crossref_data.title:
             title = crossref_data.title[0]
 
         # Extract journal name
         journal = None
-        if crossref_data.container_title and len(crossref_data.container_title) > 0:
+        if crossref_data.container_title:
             journal = crossref_data.container_title[0]
 
-        # Extract publication year
-        year = None
-        if crossref_data.published_print:
-            date_parts = crossref_data.published_print.get("date-parts", [])
-            if date_parts and len(date_parts) > 0 and len(date_parts[0]) > 0:
-                year = date_parts[0][0]
-        elif crossref_data.published_online:
-            date_parts = crossref_data.published_online.get("date-parts", [])
-            if date_parts and len(date_parts) > 0 and len(date_parts[0]) > 0:
-                year = date_parts[0][0]
+        journal_abbreviation = None
+        if crossref_data.short_container_title:
+            journal_abbreviation = crossref_data.short_container_title[0]
 
+        # Extract publication year
+
+        year = self.extract_year(crossref_data)
         return ArticleCreate(
             doi=crossref_data.DOI.lower(),
             title=title,
             journal=journal,
+            journalabb=journal_abbreviation,
             year=year,
             volume=crossref_data.volume,
             issue=crossref_data.issue,

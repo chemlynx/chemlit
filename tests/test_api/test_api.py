@@ -1,16 +1,16 @@
 """Test API endpoints."""
 
+from unittest.mock import Mock, patch
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-from unittest.mock import patch, Mock
 
-from chemlit_extractor.database.models import Base
 from chemlit_extractor.database import get_db
+from chemlit_extractor.database.models import Base
 from chemlit_extractor.main import app
-from chemlit_extractor.models.schemas import CrossRefResponse
 
 
 @pytest.fixture(scope="function")

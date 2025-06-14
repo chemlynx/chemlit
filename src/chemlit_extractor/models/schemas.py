@@ -65,7 +65,8 @@ class ArticleBase(BaseSchema):
 
     title: str = Field(..., min_length=1, max_length=1000)
     journal: str | None = Field(default=None, max_length=255)
-    year: int | None = Field(default=None, ge=1800, le=2030)
+    journalabb: str | None = Field(default=None, max_length=155)
+    year: int | None = Field(default=None, ge=1900, le=2030)
     volume: str | None = Field(default=None, max_length=50)
     issue: str | None = Field(default=None, max_length=50)
     pages: str | None = Field(default=None, max_length=50)
@@ -77,7 +78,7 @@ class ArticleBase(BaseSchema):
 class ArticleCreate(ArticleBase):
     """Schema for creating articles."""
 
-    doi: str = Field(..., min_length=1, max_length=255)
+    doi: str = Field(..., min_length=5, max_length=255)
 
     @field_validator("doi")
     @classmethod
@@ -94,7 +95,8 @@ class ArticleUpdate(BaseSchema):
 
     title: str | None = Field(default=None, min_length=1, max_length=1000)
     journal: str | None = Field(default=None, max_length=255)
-    year: int | None = Field(default=None, ge=1800, le=2030)
+    journalabb: str | None = Field(default=None, max_length=155)
+    year: int | None = Field(default=None, ge=1900, le=2030)
     volume: str | None = Field(default=None, max_length=50)
     issue: str | None = Field(default=None, max_length=50)
     pages: str | None = Field(default=None, max_length=50)
@@ -192,7 +194,7 @@ class CompoundProperty(CompoundPropertyBase):
 class ArticleSearchQuery(BaseSchema):
     """Schema for article search queries."""
 
-    doi: str | None = Field(default=None, min_length=1, max_length=255)
+    doi: str | None = Field(default=None, min_length=5, max_length=255)
     author: str | None = Field(default=None, min_length=1, max_length=200)
     year: int | None = Field(default=None, ge=1800, le=2030)
     journal: str | None = Field(default=None, min_length=1, max_length=255)
@@ -237,9 +239,11 @@ class CrossRefResponse(BaseSchema):
     published_print: dict[str, Any] | None = Field(default=None)
     published_online: dict[str, Any] | None = Field(default=None)
     container_title: list[str] | None = Field(default=None)
+    short_container_title: list[str] | None = Field(default=None)
     publisher: str | None = Field(default=None)
     volume: str | None = Field(default=None)
     issue: str | None = Field(default=None)
     page: str | None = Field(default=None)
     abstract: str | None = Field(default=None)
     URL: str | None = Field(default=None)
+    published: dict[str, Any] | None = None

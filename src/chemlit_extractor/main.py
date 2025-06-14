@@ -4,20 +4,23 @@ This module sets up the FastAPI application with middleware, routers,
 and lifespan management for extracting chemical data from journal articles.
 """
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Any
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from chemlit_extractor.api.v1.api import api_router
+from chemlit_extractor.api.v1.endpoints import ui  # New UI router
 from chemlit_extractor.core.config import settings
 from chemlit_extractor.database.connection import create_tables
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Manage application lifespan events.
 
     Handles startup and shutdown tasks for the FastAPI application.
@@ -35,11 +38,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     create_tables()
     print("🚀 Starting ChemLit Extractor...")
     print(f"📊 Database: {settings.database_url}")
-    print(f"📝 Documentation: http://127.0.0.1:8000/docs")
-    print(f"📚 ReDoc: http://127.0.0.1:8000/redoc")
-    print(f"🔧 API: http://127.0.0.1:8000/api/v1")
+    print("📝 Documentation: http://127.0.0.1:8000/docs")
+    print("📚 ReDoc: http://127.0.0.1:8000/redoc")
+    print("🔧 API: http://127.0.0.1:8000/api/v1")
     print(f"📊 Database new: {settings.database_host}:{settings.database_port}")
-    print(f"📈 Stats: http://localhost:8000/api/v1/stats")
+    print("📈 Stats: http://localhost:8000/api/v1/stats")
+    print("🖥️  Web UI: http://127.0.0.1:8000")
     print("✅ ChemLit Extractor started successfully!")
 
     yield
@@ -73,11 +77,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount static files (for CSS, JS, images)
+# Create a static directory if it doesn't exist
+static_dir = Path("static")
+static_dir.mkdir(exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 # Include API router
 app.include_router(
     api_router,
     prefix="/api/v1",
 )
+
+
+# Include UI router (for web pages)
+app.include_router(ui.router, prefix="", tags=["ui"])
 
 
 @app.get("/", response_model=dict[str, str])

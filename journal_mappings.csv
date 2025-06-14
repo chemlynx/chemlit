@@ -1,0 +1,31 @@
+# journal_mappings.csv
+# DOI Pattern,Short Name,Full Name,Publisher
+# RSC journals - 3rd and 4th characters of final DOI section
+10.1039/..ob,Org. Biomol. Chem.,Organic & Biomolecular Chemistry,Royal Society of Chemistry
+10.1039/..cc,Chem. Commun.,Chemical Communications,Royal Society of Chemistry
+10.1039/..dt,Dalton Trans.,Dalton Transactions,Royal Society of Chemistry
+10.1039/..cs,Chem. Soc. Rev.,Chemical Society Reviews,Royal Society of Chemistry
+10.1039/..cp,Phys. Chem. Chem. Phys.,Physical Chemistry Chemical Physics,Royal Society of Chemistry
+# ACS journals - straightforward prefixes
+10.1021/jacs,J. Am. Chem. Soc.,Journal of the American Chemical Society,American Chemical Society
+10.1021/ja,J. Am. Chem. Soc.,Journal of the American Chemical Society,American Chemical Society
+10.1021/ol,Org. Lett.,Organic Letters,American Chemical Society
+10.1021/jo,J. Org. Chem.,The Journal of Organic Chemistry,American Chemical Society
+10.1021/acs.joc,J. Org. Chem.,The Journal of Organic Chemistry,American Chemical Society
+10.1021/cr,Chem. Rev.,Chemical Reviews,American Chemical Society
+10.1021/om,Organometallics,Organometallics,American Chemical Society
+10.1021/ic,Inorg. Chem.,Inorganic Chemistry,American Chemical Society
+# Beilstein
+10.3762/bjoc,Beilstein J. Org. Chem.,Beilstein Journal of Organic Chemistry,Beilstein Institut
+# Nature journals
+10.1038/nature,Nature,Nature,Nature Publishing Group
+10.1038/nchem,Nat. Chem.,Nature Chemistry,Nature Publishing Group
+10.1038/ncomms,Nat. Commun.,Nature Communications,Nature Publishing Group
+# Wiley journals
+10.1002/anie,Angew. Chem. Int. Ed.,Angewandte Chemie International Edition,Wiley
+10.1002/chem,Chem. Eur. J.,Chemistry - A European Journal,Wiley
+10.1002/adsc,Adv. Synth. Catal.,Advanced Synthesis & Catalysis,Wiley
+# Elsevier journals
+10.1016/j.tet,Tetrahedron,Tetrahedron,Elsevier
+10.1016/j.tetlet,Tetrahedron Lett.,Tetrahedron Letters,Elsevier
+10.1016/j.bmcl,Bioorg. Med. Chem. Lett.,Bioorganic & Medicinal Chemistry Letters,Elsevier
