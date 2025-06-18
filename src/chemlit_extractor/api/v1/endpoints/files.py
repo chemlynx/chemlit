@@ -6,6 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+from fastapi.responses import FileResponse, HTMLResponse
 
 from chemlit_extractor.database import ArticleCRUD, get_db
 from chemlit_extractor.services.file_management import FileManagementService
@@ -436,3 +437,61 @@ def _download_files_background(
 
         logger = logging.getLogger(__name__)
         logger.error(f"Background download failed for {doi}: {e}")
+
+
+@router.get("/{doi:path}/stats/html")
+def get_file_stats_html(
+    doi: str,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    """Get file statistics as HTML for HTMX updates."""
+    try:
+        # Verify article exists
+        article = ArticleCRUD.get_by_doi(db, doi)
+        if not article:
+            return HTMLResponse(
+                content=f"<div class=\"error\">Article with DOI '{doi}' not found.</div>",
+                status_code=404,
+            )
+
+        with FileManagementService() as file_service:
+            stats = file_service.get_file_stats(doi)
+
+            if stats["has_files"]:
+                file_list = ""
+                for file_type, count in stats["file_counts"].items():
+                    if count > 0:
+                        file_list += f"<li><strong>{file_type.title()}:</strong> {count} file(s)</li>"
+
+                return HTMLResponse(
+                    content=f"""
+                <div class="download-status">
+                    <h3>File Status for {doi}</h3>
+                    <p><strong>Total files:</strong> {stats['total_files']}</p>
+                    <p><strong>Total size:</strong> {stats['total_size_mb']} MB</p>
+                    <p><strong>Last updated:</strong> {stats['last_updated'] or 'Never'}</p>
+                    <ul>{file_list}</ul>
+                </div>
+                """
+                )
+            else:
+                return HTMLResponse(
+                    content=f"""
+                <div class="download-status">
+                    <h3>File Status for {doi}</h3>
+                    <p>No files have been downloaded yet.</p>
+                    <p><em>If downloads were started, they may still be in progress.</em></p>
+                    <button class="btn" 
+                            hx-get="/api/v1/files/{doi}/stats/html" 
+                            hx-target="#file-status" hx-swap="innerHTML">
+                        Refresh Status
+                    </button>
+                </div>
+                """
+                )
+
+    except Exception as e:
+        return HTMLResponse(
+            content=f'<div class="error">Error checking file status: {str(e)}</div>',
+            status_code=500,
+        )

@@ -348,7 +348,7 @@ class CrossRefService:
             doi=crossref_data.DOI.lower(),
             title=title,
             journal=journal,
-            journalabb=journal_abbreviation,
+            # journalabb=journal_abbreviation,
             year=year,
             volume=crossref_data.volume,
             issue=crossref_data.issue,

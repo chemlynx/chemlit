@@ -66,6 +66,7 @@ select = [
   "FAST001", # FastAPI route with redundant response_model argument
   #  "FAST002", # FastAPI dependency without Annotated
   "FAST003", # Parameter {arg_name} appears in route path, but not in {function_name} signature
+  "PTH",
 ]
 ignore = [
   "E501", # line too long, handled by formatter

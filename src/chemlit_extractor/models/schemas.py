@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, Field, HttpUrl, field_validator, model_validator
 
 
 class ExtractionMethod(str, Enum):
@@ -65,7 +65,7 @@ class ArticleBase(BaseSchema):
 
     title: str = Field(..., min_length=1, max_length=1000)
     journal: str | None = Field(default=None, max_length=255)
-    journalabb: str | None = Field(default=None, max_length=155)
+    # journalabb: str | None = Field(default=None, max_length=155)
     year: int | None = Field(default=None, ge=1900, le=2030)
     volume: str | None = Field(default=None, max_length=50)
     issue: str | None = Field(default=None, max_length=50)
@@ -89,13 +89,23 @@ class ArticleCreate(ArticleBase):
             raise ValueError("DOI must start with '10.'")
         return doi
 
+    @model_validator(mode="before")
+    @classmethod
+    def convert_url_to_string(cls, values):
+        """Convert HttpUrl to string for database compatibility."""
+        if isinstance(values, dict) and "url" in values:
+            url = values["url"]
+            if hasattr(url, "__str__"):  # HttpUrl object
+                values["url"] = str(url)
+        return values
+
 
 class ArticleUpdate(BaseSchema):
     """Schema for updating articles."""
 
     title: str | None = Field(default=None, min_length=1, max_length=1000)
     journal: str | None = Field(default=None, max_length=255)
-    journalabb: str | None = Field(default=None, max_length=155)
+    # journalabb: str | None = Field(default=None, max_length=155)
     year: int | None = Field(default=None, ge=1900, le=2030)
     volume: str | None = Field(default=None, max_length=50)
     issue: str | None = Field(default=None, max_length=50)
@@ -247,3 +257,37 @@ class CrossRefResponse(BaseSchema):
     abstract: str | None = Field(default=None)
     URL: str | None = Field(default=None)
     published: dict[str, Any] | None = None
+
+
+class ArticleCreateWithFiles(BaseSchema):
+    """Schema for creating articles with optional file downloads."""
+
+    doi: str = Field(
+        ..., min_length=5, max_length=255, description="DOI to fetch from CrossRef"
+    )
+    pdf_url: str | None = Field(default=None, description="URL to PDF file")
+    html_url: str | None = Field(default=None, description="URL to HTML file")
+    supplementary_urls: list[str] = Field(
+        default_factory=list, description="URLs to supplementary files"
+    )
+    download_files: bool = Field(
+        default=True, description="Whether to trigger file downloads"
+    )
+
+    @field_validator("doi")
+    @classmethod
+    def validate_doi(cls, v: str) -> str:
+        """Validate and normalize DOI format."""
+        doi = v.strip().lower()
+        if not doi.startswith("10."):
+            raise ValueError("DOI must start with '10.'")
+        return doi
+
+
+class ArticleCreateResponse(BaseSchema):
+    """Response for article creation with file download status."""
+
+    article: Article
+    download_triggered: bool = Field(default=False)
+    download_count: int = Field(default=0, ge=0)
+    download_message: str | None = Field(default=None)

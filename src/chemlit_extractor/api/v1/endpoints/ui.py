@@ -1,6 +1,5 @@
 """FastAPI endpoints for the ChemLit Extractor UI."""
 
-
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -319,3 +318,66 @@ async def save_article(
         </div>
         """
         return HTMLResponse(content=error_html)
+
+
+async def save_article_with_background_downloads(
+    request: Request,
+    doi: str = Form(...),
+    title: str = Form(...),
+    journal: str = Form(None),
+    year: int = Form(None),
+    # ... other form fields
+    db: Session = Depends(get_db),
+    # ... same parameters as above
+):
+    """
+    Version with background downloads (non-blocking).
+
+    Use this if you want the user to see immediate success
+    while downloads happen in the background.
+    """
+    try:
+        # Save article (your existing code)
+        article = articles_crud.create_article_with_authors(
+            db=db, article=article_data, authors=authors_data
+        )
+
+        # 🎯 NEW: Schedule background downloads
+        task_id = await trigger_background_downloads(
+            doi=article.doi, crossref_data=None
+        )
+
+        logger.info(f"Scheduled background downloads for {article.doi}: {task_id}")
+
+        # Return immediate success
+        return HTMLResponse(
+            content=f"""
+            <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <span class="text-green-400 text-2xl">✅</span>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-lg font-medium text-green-800">Article Registered Successfully!</h3>
+                        <p class="mt-2 text-sm text-green-700">
+                            <strong>DOI:</strong> {article.doi}<br>
+                            <strong>Title:</strong> {article.title}<br>
+                            <strong>Authors:</strong> {len(authors_data)} author(s) added
+                        </p>
+                        <div class="mt-3 text-sm text-green-600">
+                            <strong>File Downloads:</strong> Starting in background...
+                        </div>
+                        <div class="mt-4">
+                            <a href="/search" class="text-green-600 hover:text-green-500 font-medium">
+                                View in search results →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """
+        )
+
+    except Exception as e:
+        # Same error handling as above
+        pass
