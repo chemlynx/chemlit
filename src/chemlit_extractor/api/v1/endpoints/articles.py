@@ -1,27 +1,23 @@
 """API endpoints for article operations."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from typing import Any
+
 from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
     HTTPException,
     Query,
-    Request,
-    Form,
 )
 from fastapi.responses import HTMLResponse
-from typing import Annotated
+from sqlalchemy.orm import Session
 
 from chemlit_extractor.database import ArticleCRUD, CompoundCRUD, get_db
 from chemlit_extractor.models.schemas import (
     Article,
     ArticleCreate,
-    ArticleCreateWithFiles,
     ArticleCreateResponse,
+    ArticleCreateWithFiles,
     ArticleSearchQuery,
     ArticleSearchResponse,
     ArticleUpdate,
@@ -146,242 +142,6 @@ def create_article_from_doi(
         )
     finally:
         service.close()
-
-
-@router.post(
-    "/from-doi-with-files", response_model=ArticleCreateResponse, status_code=201
-)
-def create_article_from_doi_with_files(
-    request: ArticleCreateWithFiles,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-) -> ArticleCreateResponse:
-    """
-    Create an article from CrossRef and optionally download files.
-
-    This enhanced endpoint combines article registration with file downloads.
-    It fetches metadata from CrossRef, creates the article, and optionally
-    triggers background downloads of provided file URLs.
-
-    Args:
-        request: Article creation request with optional file URLs.
-        background_tasks: FastAPI background tasks for file downloads.
-        db: Database session.
-
-    Returns:
-        Created article with download status information.
-
-    Raises:
-        400: If DOI is invalid or article already exists.
-        404: If DOI not found in CrossRef.
-        502: If CrossRef API is unavailable.
-    """
-    # Check if article already exists
-    existing_article = ArticleCRUD.get_by_doi(db, request.doi)
-    if existing_article:
-        raise HTTPException(
-            status_code=400, detail=f"Article with DOI '{request.doi}' already exists"
-        )
-
-    # Fetch from CrossRef and create article
-    service = CrossRefService()
-    try:
-        result = service.fetch_and_convert_article(request.doi)
-        if not result:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Article with DOI '{request.doi}' not found in CrossRef",
-            )
-
-        article_data, authors_data = result
-
-        # Create article with authors
-        try:
-            article = ArticleCRUD.create(db, article_data, authors_data)
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-        # Handle file downloads if requested
-        download_triggered = False
-        download_count = 0
-        download_message = None
-
-        if request.download_files:
-            # Count available URLs
-            urls_available = []
-            if request.pdf_url:
-                urls_available.append("PDF")
-                download_count += 1
-            if request.html_url:
-                urls_available.append("HTML")
-                download_count += 1
-            if request.supplementary_urls:
-                urls_available.append(
-                    f"{len(request.supplementary_urls)} supplementary files"
-                )
-                download_count += len(request.supplementary_urls)
-
-            if download_count > 0:
-                # Trigger background downloads
-                background_tasks.add_task(
-                    _download_files_for_article,
-                    request.doi,
-                    request.pdf_url,
-                    request.html_url,
-                    request.supplementary_urls,
-                )
-                download_triggered = True
-                download_message = f"Download started for {', '.join(urls_available)}"
-            else:
-                download_message = "No file URLs provided for download"
-
-        return ArticleCreateResponse(
-            article=article,
-            download_triggered=download_triggered,
-            download_count=download_count,
-            download_message=download_message,
-        )
-
-    except HTTPException:
-        raise  # Re-raise HTTP exceptions
-    except Exception as e:
-        raise HTTPException(
-            status_code=502, detail=f"Failed to fetch from CrossRef: {str(e)}"
-        )
-    finally:
-        service.close()
-
-
-@router.post("/from-doi-with-files", status_code=201)
-def create_article_from_doi_with_files_htmx(
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-    doi: Annotated[str, Form()] = "None",
-    download_files: Annotated[
-        bool, Form()
-    ] = False,  # Note: Form checkboxes need special handling
-    pdf_url: Annotated[str | None, Form()] = None,
-    html_url: Annotated[str | None, Form()] = None,
-    supplementary_urls: Annotated[list[str], Form()] = [],
-) -> HTMLResponse:
-    """Create an article from CrossRef with optional file downloads (HTMX version)."""
-
-    # Handle checkbox - if not present, it's False
-    if "download_files" not in locals():
-        download_files = False
-
-    try:
-        # Check if article already exists
-        existing_article = ArticleCRUD.get_by_doi(db, doi)
-        if existing_article:
-            return HTMLResponse(
-                content=f"""
-                <div id="registration-result" class="error">
-                    <strong>Error:</strong> Article with DOI '{doi}' already exists.
-                </div>
-                """,
-                status_code=400,
-            )
-
-        # Fetch from CrossRef and create article
-        service = CrossRefService()
-        try:
-            result = service.fetch_and_convert_article(doi)
-            if not result:
-                return HTMLResponse(
-                    content=f"""
-                    <div id="registration-result" class="error">
-                        <strong>Error:</strong> Article with DOI '{doi}' not found in CrossRef.
-                    </div>
-                    """,
-                    status_code=404,
-                )
-
-            article_data, authors_data = result
-
-            # Convert HttpUrl to string if needed
-            if hasattr(article_data, "url") and article_data.url is not None:
-                article_data.url = str(article_data.url)
-
-            # Create article
-            article = ArticleCRUD.create(db, article_data, authors_data)
-
-            # Handle downloads
-            download_html = ""
-            if download_files:
-                clean_supplementary_urls = [
-                    url for url in supplementary_urls if url and url.strip()
-                ]
-
-                download_count = 0
-                urls_available = []
-                if pdf_url and pdf_url.strip():
-                    urls_available.append("PDF")
-                    download_count += 1
-                if html_url and html_url.strip():
-                    urls_available.append("HTML")
-                    download_count += 1
-                if clean_supplementary_urls:
-                    urls_available.append(
-                        f"{len(clean_supplementary_urls)} supplementary files"
-                    )
-                    download_count += len(clean_supplementary_urls)
-
-                if download_count > 0:
-                    background_tasks.add_task(
-                        _download_files_for_article,
-                        doi,
-                        pdf_url.strip() if pdf_url else None,
-                        html_url.strip() if html_url else None,
-                        clean_supplementary_urls,
-                    )
-                    download_html = f"""
-                    <div class="download-status">
-                        <strong>Downloads Started:</strong> {', '.join(urls_available)}
-                        <br><small>Files are downloading in the background.</small>
-                    </div>
-                    """
-
-            return HTMLResponse(
-                content=f"""
-                <div id="registration-result" class="success">
-                    <strong>Success!</strong> Article registered successfully.
-                    <br><strong>Title:</strong> {article.title}
-                    <br><strong>Journal:</strong> {article.journal or 'N/A'}
-                    <br><strong>Authors:</strong> {len(article.authors)} author(s)
-                    {download_html}
-                    <br><br>
-                    <button class="btn" 
-                            hx-get="/api/v1/files/{doi}/stats/html" 
-                            hx-target="#file-status">
-                        Check File Status
-                    </button>
-                </div>
-                """,
-                status_code=201,
-            )
-
-        except Exception as e:
-            return HTMLResponse(
-                content=f"""
-                <div id="registration-result" class="error">
-                    <strong>Error:</strong> Failed to fetch from CrossRef: {str(e)}
-                </div>
-                """,
-                status_code=502,
-            )
-        finally:
-            service.close()
-
-    except Exception as e:
-        return HTMLResponse(
-            content=f"""
-            <div id="registration-result" class="error">
-                <strong>Unexpected Error:</strong> {str(e)}
-            </div>
-            """,
-            status_code=500,
-        )
 
 
 @router.post("/{doi:path}/trigger-downloads")
@@ -758,45 +518,6 @@ def _download_files_for_article(
 
     except Exception as e:
         logger.error(f"Background download task failed for {doi}: {e}")
-
-
-# Helper endpoint for toggling download fields
-@router.get("/toggle-download-fields")
-def toggle_download_fields(enabled: bool = Query(default=True)) -> HTMLResponse:
-    """Toggle visibility of download fields based on checkbox state."""
-    if enabled:
-        return HTMLResponse(
-            content="""
-        <div id="download-fields">
-            <div class="form-group">
-                <label for="pdf_url">PDF URL</label>
-                <input type="url" id="pdf_url" name="pdf_url" 
-                       placeholder="https://example.com/article.pdf">
-            </div>
-            <div class="form-group">
-                <label for="html_url">HTML URL</label>
-                <input type="url" id="html_url" name="html_url" 
-                       placeholder="https://example.com/article.html">
-            </div>
-            <div class="form-group">
-                <label>Supplementary Files</label>
-                <div id="supplementary-urls">
-                    <div class="supplementary-url-input">
-                        <input type="url" name="supplementary_urls" 
-                               placeholder="https://example.com/supplementary1.zip">
-                    </div>
-                </div>
-                <button type="button" class="btn btn-secondary"
-                        hx-post="/api/v1/articles/add-supplementary-field"
-                        hx-target="#supplementary-urls" hx-swap="beforeend">
-                    + Add Another Supplementary File
-                </button>
-            </div>
-        </div>
-        """
-        )
-    else:
-        return HTMLResponse(content='<div id="download-fields"></div>')
 
 
 @router.post("/add-supplementary-field")

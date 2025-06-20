@@ -95,7 +95,7 @@ def validate_rsc_pattern_matching():
             success = journal_info.short_name == expected_journal
             print(f"    Result: {'✅' if success else '❌'}")
         else:
-            print(f"    Result: ❌ No mapping found")
+            print("    Result: ❌ No mapping found")
         print()
 
 

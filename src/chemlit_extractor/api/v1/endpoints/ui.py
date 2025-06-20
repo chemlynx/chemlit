@@ -378,6 +378,6 @@ async def save_article_with_background_downloads(
             """
         )
 
-    except Exception as e:
+    except Exception:
         # Same error handling as above
         pass

@@ -5,10 +5,9 @@ Clean implementation focusing only on exact journal mapping with no fallbacks.
 """
 
 import csv
-import re
-from pathlib import Path
-from typing import Optional, NamedTuple, List
 import logging
+from pathlib import Path
+from typing import NamedTuple
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,7 @@ class JournalMapper:
             csv_file: Path to CSV file with journal mappings
         """
         self.csv_file = csv_file
-        self.mappings: List[tuple] = []
+        self.mappings: list[tuple] = []
         self._load_mappings()
 
     def _load_mappings(self) -> None:
@@ -44,7 +43,7 @@ class JournalMapper:
             return
 
         try:
-            with open(csv_path, "r", encoding="utf-8") as f:
+            with open(csv_path, encoding="utf-8") as f:
                 reader = csv.reader(f)
 
                 for line_num, row in enumerate(reader, 1):
@@ -72,7 +71,7 @@ class JournalMapper:
         except Exception as e:
             logger.error(f"Error loading journal mappings: {e}")
 
-    def get_journal_info(self, doi: str) -> Optional[JournalInfo]:
+    def get_journal_info(self, doi: str) -> JournalInfo | None:
         """
         Get journal information from DOI.
 

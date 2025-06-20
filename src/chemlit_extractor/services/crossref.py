@@ -6,13 +6,15 @@ from typing import Any
 
 import httpx
 from pydantic import ValidationError
-from .simple_journal_mapper import enhance_article_with_journal_mapping
+
 from chemlit_extractor.core.config import settings
 from chemlit_extractor.models.schemas import (
     ArticleCreate,
     AuthorCreate,
     CrossRefResponse,
 )
+
+from .simple_journal_mapper import enhance_article_with_journal_mapping
 
 
 class RateLimiter:
