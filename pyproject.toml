@@ -53,16 +53,20 @@ build-backend = "hatchling.build"
 target-version = "py313"
 line-length = 88
 select = [
+  "A",       # flake8-Bulitins
   "E",       # pycodestyle errors
   "W",       # pycodestyle warnings  
   "F",       # pyflakes
   "I",       # isort
   "B",       # flake8-bugbear
+  "N",       # pep8 Naming
+  "S",       # flake8-bandit
   "C4",      # flake8-comprehensions
   "UP",      # pyupgrade
   "ARG",     # flake8-unused-arguments
   "SIM",     # flake8-simplify
-  "TCH",     # flake8-type-checking
+  "TC",      # flake8-type-checking
+  "T20",     # flake8 print
   "FAST001", # FastAPI route with redundant response_model argument
   #  "FAST002", # FastAPI dependency without Annotated
   "FAST003", # Parameter {arg_name} appears in route path, but not in {function_name} signature

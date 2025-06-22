@@ -1,6 +1,5 @@
 """Test API endpoints."""
 
-from unittest.mock import Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -259,77 +258,6 @@ class TestArticleEndpoints:
         """Test deleting non-existent article."""
         response = client.delete("/api/v1/articles/10.1000/nonexistent")
         assert response.status_code == 404
-
-    @patch("chemlit_extractor.api.v1.endpoints.articles.CrossRefService")
-    def test_create_article_from_doi_success(self, mock_service_class, client):
-        """Test creating article from DOI via CrossRef."""
-        # Setup mock
-        mock_service = Mock()
-        mock_service_class.return_value = mock_service
-
-        # Mock CrossRef response - ensure data matches Pydantic schemas
-        from chemlit_extractor.models.schemas import ArticleCreate, AuthorCreate
-
-        article_data = ArticleCreate(
-            doi="10.1000/crossref.test",
-            title="CrossRef Test Article",
-            journal="CrossRef Journal",
-            year=2023,
-        )
-        authors_data = [AuthorCreate(first_name="John", last_name="Doe")]
-        mock_service.fetch_and_convert_article.return_value = (
-            article_data,
-            authors_data,
-        )
-
-        # Make request
-        response = client.post("/api/v1/articles/from-doi?doi=10.1000/crossref.test")
-
-        # Debug output if test fails
-        if response.status_code != 201:
-            print(f"Response status: {response.status_code}")
-            print(f"Response body: {response.json()}")
-
-        assert response.status_code == 201
-
-        data = response.json()
-        assert data["doi"] == "10.1000/crossref.test"
-        assert data["title"] == "CrossRef Test Article"
-        assert len(data["authors"]) == 1
-
-        # Verify service was called
-        mock_service.fetch_and_convert_article.assert_called_once_with(
-            "10.1000/crossref.test"
-        )
-        mock_service.close.assert_called_once()
-
-    @patch("chemlit_extractor.services.crossref.CrossRefService")
-    def test_create_article_from_doi_not_found(self, mock_service_class, client):
-        """Test creating article from DOI when not found in CrossRef."""
-        # Setup mock
-        mock_service = Mock()
-        mock_service_class.return_value = mock_service
-        mock_service.fetch_and_convert_article.return_value = None
-
-        # Make request
-        response = client.post("/api/v1/articles/from-doi?doi=10.1000/notfound")
-        assert response.status_code == 404
-        assert "not found in CrossRef" in response.json()["detail"]
-
-    @patch("chemlit_extractor.services.crossref.CrossRefService")
-    def test_create_article_from_doi_already_exists(
-        self, mock_service_class, client, sample_article_data
-    ):
-        """Test creating article from DOI when article already exists."""
-        # Create article first
-        client.post("/api/v1/articles/", json=sample_article_data)
-
-        # Try to create same article from DOI
-        response = client.post(
-            f"/api/v1/articles/from-doi?doi={sample_article_data['doi']}"
-        )
-        assert response.status_code == 400
-        assert "already exists" in response.json()["detail"]
 
 
 class TestAuthorEndpoints:

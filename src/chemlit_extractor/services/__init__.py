@@ -1,11 +1,7 @@
 """Services package initialization."""
 
 from chemlit_extractor.services.crossref import (
-    CrossRefClient,
     CrossRefService,
-    RateLimiter,
-    get_crossref_client,
-    get_crossref_service,
 )
 from chemlit_extractor.services.file_download import (
     DownloadResult,
@@ -29,18 +25,14 @@ from chemlit_extractor.services.file_utils import (
 
 __all__ = [
     "ArticleFileInfo",
-    "CrossRefClient",
-    "CrossRefService",
     "DownloadResult",
     "FileDownloadService",
     "FileManagementService",
     "FileType",
-    "RateLimiter",
     "create_article_directories",
     "download_article_files",
     "download_file",
     "get_article_directory",
-    "get_crossref_client",
     "get_crossref_service",
     "get_file_management_service",
     "get_file_type_directory",
