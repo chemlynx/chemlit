@@ -1,0 +1,489 @@
+<!-- templates/article_preview_form.html -->
+<div class="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
+  <h2 class="text-xl font-semibold text-gray-900 mb-6">
+    Review and Edit Article Data
+  </h2>
+
+  <form
+    hx-post="/api/v1/articles/"
+    hx-target="#registration-result"
+    hx-indicator="#save-loading"
+    hx-swap="innerHTML"
+    hx-ext="json-enc"
+  >
+    <!-- Hidden fields for the unified API structure -->
+    <input type="hidden" name="fetch_from_crossref" value="false" />
+    <input
+      type="hidden"
+      name="download_files"
+      id="download_files_hidden"
+      value="false"
+    />
+
+    <!-- Article Data Section -->
+    <div class="space-y-6">
+      <h3 class="text-lg font-medium text-gray-900 pb-2 border-b">
+        Article Information
+      </h3>
+
+      <!-- Article fields -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="md:col-span-2">
+          <label for="doi" class="block text-sm font-medium text-gray-700 mb-1">
+            DOI <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="article_data[doi]"
+            value="{{ article.doi }}"
+            required
+            readonly
+            class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
+          />
+        </div>
+
+        <div class="md:col-span-2">
+          <label
+            for="title"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Title <span class="text-red-500">*</span>
+          </label>
+          <textarea
+            name="article_data[title]"
+            rows="2"
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue focus:border-chem-blue"
+          >
+{{ article.title }}</textarea
+          >
+        </div>
+
+        <div>
+          <label
+            for="journal"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Journal
+          </label>
+          <input
+            type="text"
+            name="article_data[journal]"
+            value="{{ article.journal }}"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue focus:border-chem-blue"
+          />
+        </div>
+
+        <div>
+          <label
+            for="year"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Year
+          </label>
+          <input
+            type="number"
+            name="article_data[year]"
+            value="{{ article.year }}"
+            min="1900"
+            max="2030"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue focus:border-chem-blue"
+          />
+        </div>
+
+        <div>
+          <label
+            for="volume"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Volume
+          </label>
+          <input
+            type="text"
+            name="article_data[volume]"
+            value="{{ article.volume }}"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue focus:border-chem-blue"
+          />
+        </div>
+
+        <div>
+          <label
+            for="issue"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Issue
+          </label>
+          <input
+            type="text"
+            name="article_data[issue]"
+            value="{{ article.issue }}"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue focus:border-chem-blue"
+          />
+        </div>
+
+        <div>
+          <label
+            for="pages"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Pages
+          </label>
+          <input
+            type="text"
+            name="article_data[pages]"
+            value="{{ article.pages }}"
+            placeholder="123-130"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue focus:border-chem-blue"
+          />
+        </div>
+
+        <div>
+          <label
+            for="publisher"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Publisher
+          </label>
+          <input
+            type="text"
+            name="article_data[publisher]"
+            value="{{ article.publisher }}"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue focus:border-chem-blue"
+          />
+        </div>
+
+        <div class="md:col-span-2">
+          <label for="url" class="block text-sm font-medium text-gray-700 mb-1">
+            Article URL
+          </label>
+          <input
+            type="url"
+            name="article_data[url]"
+            value="{{ article.url }}"
+            placeholder="https://example.com/article"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue focus:border-chem-blue"
+          />
+        </div>
+
+        <div class="md:col-span-2">
+          <label
+            for="abstract"
+            class="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Abstract
+          </label>
+          <textarea
+            name="article_data[abstract]"
+            rows="4"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue focus:border-chem-blue"
+          >
+{{ article.abstract }}</textarea
+          >
+        </div>
+      </div>
+
+      <!-- Authors Section -->
+      <div class="mt-8">
+        <h3 class="text-lg font-medium text-gray-900 pb-2 border-b mb-4">
+          Authors
+        </h3>
+        <div id="authors-list" class="space-y-4">
+          {% for author in authors %}
+          <div
+            class="author-entry flex items-center space-x-4 p-4 bg-gray-50 rounded-lg"
+          >
+            <div class="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+              <input
+                type="text"
+                name="authors[{{ loop.index0 }}][first_name]"
+                value="{{ author.first_name }}"
+                placeholder="First Name"
+                class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue"
+              />
+              <input
+                type="text"
+                name="authors[{{ loop.index0 }}][last_name]"
+                value="{{ author.last_name }}"
+                placeholder="Last Name"
+                class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue"
+              />
+              <input
+                type="text"
+                name="authors[{{ loop.index0 }}][orcid]"
+                value="{{ author.orcid }}"
+                placeholder="0000-0000-0000-0000"
+                class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue"
+              />
+              <input
+                type="email"
+                name="authors[{{ loop.index0 }}][email]"
+                value="{{ author.email }}"
+                placeholder="email@example.com"
+                class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue"
+              />
+            </div>
+            <button
+              type="button"
+              onclick="this.parentElement.remove()"
+              class="text-red-600 hover:text-red-800"
+            >
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                ></path>
+              </svg>
+            </button>
+          </div>
+          {% endfor %}
+        </div>
+
+        <button
+          type="button"
+          onclick="addAuthor()"
+          class="mt-4 text-sm text-chem-blue hover:text-chem-dark font-medium"
+        >
+          + Add Another Author
+        </button>
+      </div>
+
+      <!-- File Download Options -->
+      <div class="mt-8">
+        <h3 class="text-lg font-medium text-gray-900 pb-2 border-b mb-4">
+          File Downloads (Optional)
+        </h3>
+
+        <div class="mb-4">
+          <label class="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="enable_downloads"
+              onchange="toggleDownloads(this)"
+              class="w-4 h-4 text-chem-blue border-gray-300 rounded focus:ring-chem-blue"
+            />
+            <span class="text-sm font-medium text-gray-700">
+              Download files after registration
+            </span>
+          </label>
+        </div>
+
+        <div id="download-fields" class="hidden space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              PDF URL
+            </label>
+            <input
+              type="url"
+              name="file_urls[pdf_url]"
+              placeholder="https://example.com/article.pdf"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              HTML URL
+            </label>
+            <input
+              type="url"
+              name="file_urls[html_url]"
+              placeholder="https://example.com/article.html"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Supplementary Files
+            </label>
+            <div id="supplementary-urls" class="space-y-2">
+              <input
+                type="url"
+                name="file_urls[supplementary_urls][]"
+                placeholder="https://example.com/supplementary.zip"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue"
+              />
+            </div>
+            <button
+              type="button"
+              onclick="addSupplementaryUrl()"
+              class="mt-2 text-sm text-chem-blue hover:text-chem-dark font-medium"
+            >
+              + Add Another Supplementary File
+            </button>
+          </div>
+
+          <div class="p-3 bg-blue-50 rounded-md">
+            <p class="text-sm text-blue-700">
+              <strong>Tip:</strong> Files will be downloaded in the background
+              after article registration. You can check download progress in the
+              file management section.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="mt-8 flex justify-between items-center pt-6 border-t">
+        <button
+          type="button"
+          onclick="location.reload()"
+          class="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="submit"
+          class="px-6 py-3 bg-chem-blue text-white rounded-lg hover:bg-chem-dark transition-colors font-medium"
+        >
+          <span id="save-loading" class="htmx-indicator">
+            <span
+              class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"
+            ></span>
+          </span>
+          Register Article
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Result display area -->
+<div id="registration-result" class="mt-6"></div>
+
+<script>
+  // Include the JavaScript functions here since they need to be available after HTMX swap
+  if (!window.addAuthor) {
+    window.addAuthor = function () {
+      const authorsList = document.getElementById("authors-list");
+      const authorCount = authorsList.querySelectorAll(".author-entry").length;
+
+      const newAuthor = document.createElement("div");
+      newAuthor.className =
+        "author-entry flex items-center space-x-4 p-4 bg-gray-50 rounded-lg";
+      newAuthor.innerHTML = `
+            <div class="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                <input type="text" 
+                       name="authors[${authorCount}][first_name]" 
+                       placeholder="First Name"
+                       class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue">
+                <input type="text" 
+                       name="authors[${authorCount}][last_name]" 
+                       placeholder="Last Name"
+                       class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue">
+                <input type="text" 
+                       name="authors[${authorCount}][orcid]" 
+                       placeholder="0000-0000-0000-0000"
+                       class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue">
+                <input type="email" 
+                       name="authors[${authorCount}][email]" 
+                       placeholder="email@example.com"
+                       class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue">
+            </div>
+            <button type="button" 
+                    onclick="this.parentElement.remove()"
+                    class="text-red-600 hover:text-red-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        `;
+      authorsList.appendChild(newAuthor);
+    };
+
+    window.toggleDownloads = function (checkbox) {
+      const downloadFields = document.getElementById("download-fields");
+      const downloadFilesHidden = document.getElementById(
+        "download_files_hidden",
+      );
+
+      if (checkbox.checked) {
+        downloadFields.classList.remove("hidden");
+        downloadFilesHidden.value = "true";
+      } else {
+        downloadFields.classList.add("hidden");
+        downloadFilesHidden.value = "false";
+      }
+    };
+
+    window.addSupplementaryUrl = function () {
+      const container = document.getElementById("supplementary-urls");
+      const newInput = document.createElement("input");
+      newInput.type = "url";
+      newInput.name = "file_urls[supplementary_urls][]";
+      newInput.placeholder = "https://example.com/supplementary.zip";
+      newInput.className =
+        "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue";
+      container.appendChild(newInput);
+    };
+  }
+
+  // HTMX extension for JSON encoding
+  htmx.defineExtension("json-enc", {
+    onEvent: function (name, evt) {
+      if (name === "htmx:configRequest") {
+        evt.detail.headers["Content-Type"] = "application/json";
+
+        // Convert form data to nested JSON structure
+        const formData = new FormData(evt.detail.elt);
+        const data = {
+          fetch_from_crossref: false,
+          download_files: formData.get("download_files") === "true",
+          article_data: {},
+          file_urls: null,
+        };
+
+        // Process article data
+        for (const [key, value] of formData.entries()) {
+          if (key.startsWith("article_data[")) {
+            const fieldName = key.match(/article_data\[(\w+)\]/)[1];
+            if (value) {
+              // Only include non-empty values
+              // Convert year to number if present
+              if (fieldName === "year" && value) {
+                data.article_data[fieldName] = parseInt(value);
+              } else {
+                data.article_data[fieldName] = value;
+              }
+            }
+          }
+        }
+
+        // Process file URLs if downloads enabled
+        if (data.download_files) {
+          data.file_urls = {
+            pdf_url: formData.get("file_urls[pdf_url]") || null,
+            html_url: formData.get("file_urls[html_url]") || null,
+            supplementary_urls: [],
+          };
+
+          // Get all supplementary URLs
+          for (const [key, value] of formData.entries()) {
+            if (key === "file_urls[supplementary_urls][]" && value) {
+              data.file_urls.supplementary_urls.push(value);
+            }
+          }
+
+          // Clean up empty file_urls
+          if (
+            !data.file_urls.pdf_url &&
+            !data.file_urls.html_url &&
+            data.file_urls.supplementary_urls.length === 0
+          ) {
+            data.file_urls = null;
+          }
+        }
+
+        evt.detail.parameters = JSON.stringify(data);
+      }
+    },
+  });
+</script>

@@ -19,3 +19,4 @@ api_router.include_router(compounds.router, prefix="/compounds", tags=["compound
 api_router.include_router(files.router, prefix="/files", tags=["files"])
 api_router.include_router(stats.router, prefix="/stats", tags=["stats"])
 api_router.include_router(register.router, prefix="/register", tags=["register"])
+api_router.include_router(register.router, prefix="/register", tags=["register"])

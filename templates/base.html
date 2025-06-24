@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ChemLit Extractor{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'chem-blue': '#1e40af',
+                        'chem-light': '#dbeafe',
+                        'chem-dark': '#1e3a8a',
+                        'chem-green': '#059669',
+                        'chem-gray': '#6b7280'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-chem-blue rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-lg">CL</span>
+                        </div>
+                        <span class="text-xl font-semibold text-gray-900">ChemLit Extractor</span>
+                    </a>
+                </div>
+                
+                <div class="flex items-center space-x-8">
+                    <a href="/" class="text-gray-600 hover:text-chem-blue transition-colors font-medium">Home</a>
+                    <a href="/search" class="text-gray-600 hover:text-chem-blue transition-colors font-medium">Search</a>
+                    <a href="/register" class="bg-chem-blue text-white px-4 py-2 rounded-lg hover:bg-chem-dark transition-colors font-medium">Add Article</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-16">
+        <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+            <div class="text-center text-gray-500">
+                <p>&copy; 2024 ChemLit Extractor. Built for chemical literature analysis.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

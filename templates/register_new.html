@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Enhanced Article Registration</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .file-downloads { border: 1px solid #e0e0e0; padding: 15px; border-radius: 4px; background-color: #f9f9f9; }
+        .supplementary-urls { margin-top: 10px; }
+        .supplementary-url-input { margin-bottom: 8px; }
+        .btn { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background-color: #0056b3; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #545b62; }
+        .success { color: #28a745; background-color: #d4edda; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .error { color: #dc3545; background-color: #f8d7da; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .loading { color: #007bff; font-style: italic; }
+        .download-status { margin-top: 15px; padding: 10px; border-radius: 4px; background-color: #e7f3ff; }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; }
+        .checkbox-group input[type="checkbox"] { width: auto; }
+    </style>
+</head>
+<body>
+    <h1>Register Article with File Downloads</h1>
+    
+    <!-- Enhanced Registration Form -->
+    <form hx-post="/api/v1/articles/from-doi-with-files" 
+          hx-target="#registration-result" 
+          hx-swap="outerHTML"
+          hx-indicator="#loading">
+        
+        <!-- DOI Input -->
+        <div class="form-group">
+            <label for="doi">DOI *</label>
+            <input type="text" 
+                   id="doi" 
+                   name="doi" 
+                   placeholder="e.g., 10.1038/nature12373" 
+                   required>
+        </div>
+
+        <!-- File Downloads Section -->
+        <fieldset class="file-downloads">
+            <legend>File Downloads (Optional)</legend>
+            
+            <div class="form-group checkbox-group">
+                <input type="checkbox" 
+                       id="download_files" 
+                       name="download_files" 
+                       value="true" 
+                       checked
+                       hx-trigger="change"
+                       hx-target="#download-fields"
+                       hx-get="/toggle-download-fields">
+                <label for="download_files">Enable automatic file downloads</label>
+            </div>
+
+            <div id="download-fields">
+                <div class="form-group">
+                    <label for="pdf_url">PDF URL</label>
+                    <input type="url" 
+                           id="pdf_url" 
+                           name="pdf_url" 
+                           placeholder="https://example.com/article.pdf">
+                </div>
+
+                <div class="form-group">
+                    <label for="html_url">HTML URL</label>
+                    <input type="url" 
+                           id="html_url" 
+                           name="html_url" 
+                           placeholder="https://example.com/article.html">
+                </div>
+
+                <div class="form-group">
+                    <label>Supplementary Files</label>
+                    <div id="supplementary-urls">
+                        <div class="supplementary-url-input">
+                            <input type="url" 
+                                   name="supplementary_urls" 
+                                   placeholder="https://example.com/supplementary1.zip">
+                        </div>
+                    </div>
+                    <button type="button" 
+                            class="btn btn-secondary"
+                            hx-post="/add-supplementary-field"
+                            hx-target="#supplementary-urls"
+                            hx-swap="beforeend">
+                        + Add Another Supplementary File
+                    </button>
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- Submit Button -->
+        <div class="form-group">
+            <button type="submit" class="btn">
+                Register Article & Download Files
+            </button>
+        </div>
+    </form>
+
+    <!-- Loading Indicator -->
+    <div id="loading" class="loading" style="display: none;">
+        Registering article and starting downloads...
+    </div>
+
+    <!-- Results Area -->
+    <div id="registration-result"></div>
+
+    <!-- File Status Check -->
+    <div id="file-status" style="margin-top: 30px;"></div>
+
+</body>
+</html>
+

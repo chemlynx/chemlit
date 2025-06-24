@@ -169,7 +169,7 @@ src/chemlit_extractor/static/build/
 
 # Downloaded articles and papers
 *.pdf
-*.html
+#*.html
 papers/
 articles/
 

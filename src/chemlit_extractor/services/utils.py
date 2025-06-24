@@ -1,6 +1,5 @@
 """Simplified journal mapping service."""
 
-from pathlib import Path
 from typing import NamedTuple
 
 # Move this data into the service itself - no need for external CSV
@@ -61,7 +60,7 @@ def get_journal_info(doi: str) -> JournalInfo | None:
 
     # Check exact prefix matches
     for pattern, journal_data in JOURNAL_MAPPINGS.items():
-        if not ".." in pattern and doi_lower.startswith(pattern):
+        if ".." not in pattern and doi_lower.startswith(pattern):
             return JournalInfo(*journal_data)
 
     return None

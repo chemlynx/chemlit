@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Register Article - ChemLit Extractor{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+    <!-- Header -->
+    <div class="text-center">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Register New Article</h1>
+        <p class="text-gray-600">Enter a DOI to fetch article metadata and register it in your database</p>
+    </div>
+
+    <!-- DOI Input Form -->
+    <div class="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
+        <form hx-post="/register/fetch-doi" 
+              hx-target="#article-form" 
+              hx-indicator="#fetch-loading"
+              hx-swap="innerHTML">
+            <div class="space-y-4">
+                <div>
+                    <label for="doi-input" class="block text-sm font-medium text-gray-700 mb-2">
+                        Article DOI
+                    </label>
+                    <div class="flex space-x-4">
+                        <input type="text" 
+                               id="doi-input" 
+                               name="doi" 
+                               placeholder="10.1000/example.doi"
+                               required
+                               class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-chem-blue focus:border-chem-blue">
+                        <button type="submit" 
+                                class="px-6 py-3 bg-chem-blue text-white rounded-lg hover:bg-chem-dark transition-colors font-medium">
+                            <span id="fetch-loading" class="htmx-indicator">
+                                <span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                            </span>
+                            Fetch Data
+                        </button>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-500">
+                    Enter a DOI to automatically fetch article metadata from CrossRef
+                </p>
+            </div>
+        </form>
+    </div>
+
+    <!-- Article Registration Form (populated after DOI fetch) -->
+    <div id="article-form">
+        <!-- Article form will be loaded here after DOI fetch -->
+        <div class="bg-gray-50 rounded-xl p-8 text-center text-gray-500 border border-gray-200">
+            <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <span class="text-gray-400 text-2xl">📋</span>
+            </div>
+            <p class="text-lg font-medium mb-2">Ready to fetch article data</p>
+            <p>Enter a DOI above to load article metadata for review and registration</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

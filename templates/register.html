@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Register Article - ChemLit Extractor{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+    <!-- Header -->
+    <div class="text-center">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Register New Article</h1>
+        <p class="text-gray-600">Enter a DOI to fetch article metadata and register it in your database</p>
+    </div>
+
+    <!-- DOI Input Form -->
+    <div class="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
+        <form hx-post="/api/v1/register/fetch-preview" 
+              hx-target="#article-form" 
+              hx-indicator="#fetch-loading"
+              hx-swap="innerHTML">
+            <div class="space-y-4">
+                <div>
+                    <label for="doi-input" class="block text-sm font-medium text-gray-700 mb-2">
+                        Article DOI
+                    </label>
+                    <div class="flex space-x-4">
+                        <input type="text" 
+                               id="doi-input" 
+                               name="doi" 
+                               placeholder="10.1000/example.doi"
+                               required
+                               class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-chem-blue focus:border-chem-blue">
+                        <button type="submit" 
+                                class="px-6 py-3 bg-chem-blue text-white rounded-lg hover:bg-chem-dark transition-colors font-medium">
+                            <span id="fetch-loading" class="htmx-indicator">
+                                <span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                            </span>
+                            Fetch Data
+                        </button>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-500">
+                    Enter a DOI to automatically fetch article metadata from CrossRef
+                </p>
+            </div>
+        </form>
+    </div>
+
+    <!-- Article Registration Form (populated after DOI fetch) -->
+    <div id="article-form">
+        <!-- Article form will be loaded here after DOI fetch -->
+        <div class="bg-gray-50 rounded-xl p-8 text-center text-gray-500 border border-gray-200">
+            <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <span class="text-gray-400 text-2xl">📋</span>
+            </div>
+            <p class="text-lg font-medium mb-2">Ready to fetch article data</p>
+            <p>Enter a DOI above to load article metadata for review and registration</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// Define these functions globally so they're available after HTMX swaps content
+window.addAuthor = function() {
+    const authorsList = document.getElementById('authors-list');
+    if (!authorsList) return;
+    
+    const authorCount = authorsList.querySelectorAll('.author-entry').length;
+    
+    const newAuthor = document.createElement('div');
+    newAuthor.className = 'author-entry flex items-center space-x-4 p-4 bg-gray-50 rounded-lg';
+    newAuthor.innerHTML = `
+        <div class="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <input type="text" 
+                   name="authors[${authorCount}][first_name]" 
+                   placeholder="First Name"
+                   class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue">
+            <input type="text" 
+                   name="authors[${authorCount}][last_name]" 
+                   placeholder="Last Name"
+                   class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue">
+            <input type="text" 
+                   name="authors[${authorCount}][orcid]" 
+                   placeholder="0000-0000-0000-0000"
+                   class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue">
+            <input type="email" 
+                   name="authors[${authorCount}][email]" 
+                   placeholder="email@example.com"
+                   class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue">
+        </div>
+        <button type="button" 
+                onclick="this.parentElement.remove()"
+                class="text-red-600 hover:text-red-800">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    `;
+    authorsList.appendChild(newAuthor);
+};
+
+window.toggleDownloads = function(checkbox) {
+    const downloadFields = document.getElementById('download-fields');
+    const downloadFilesHidden = document.getElementById('download_files_hidden');
+    
+    if (checkbox.checked) {
+        downloadFields.classList.remove('hidden');
+        downloadFilesHidden.value = 'true';
+    } else {
+        downloadFields.classList.add('hidden');
+        downloadFilesHidden.value = 'false';
+    }
+};
+
+window.addSupplementaryUrl = function() {
+    const container = document.getElementById('supplementary-urls');
+    if (!container) return;
+    
+    const newInput = document.createElement('input');
+    newInput.type = 'url';
+    newInput.name = 'file_urls[supplementary_urls][]';
+    newInput.placeholder = 'https://example.com/supplementary.zip';
+    newInput.className = 'w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue';
+    container.appendChild(newInput);
+};
+
+// HTMX extension for JSON encoding
+htmx.defineExtension('json-enc', {
+    onEvent: function(name, evt) {
+        if (name === "htmx:configRequest") {
+            evt.detail.headers['Content-Type'] = "application/json";
+            
+            // Convert form data to nested JSON structure
+            const formData = new FormData(evt.detail.elt);
+            const data = {
+                fetch_from_crossref: false,
+                download_files: formData.get('download_files') === 'true',
+                article_data: {},
+                file_urls: null
+            };
+            
+            // Process article data
+            for (const [key, value] of formData.entries()) {
+                if (key.startsWith('article_data[')) {
+                    const fieldName = key.match(/article_data\[(\w+)\]/)[1];
+                    if (value) { // Only include non-empty values
+                        // Convert year to number if present
+                        if (fieldName === 'year' && value) {
+                            data.article_data[fieldName] = parseInt(value);
+                        } else {
+                            data.article_data[fieldName] = value;
+                        }
+                    }
+                }
+            }
+            
+            // Process file URLs if downloads enabled
+            if (data.download_files) {
+                data.file_urls = {
+                    pdf_url: formData.get('file_urls[pdf_url]') || null,
+                    html_url: formData.get('file_urls[html_url]') || null,
+                    supplementary_urls: []
+                };
+                
+                // Get all supplementary URLs
+                for (const [key, value] of formData.entries()) {
+                    if (key === 'file_urls[supplementary_urls][]' && value) {
+                        data.file_urls.supplementary_urls.push(value);
+                    }
+                }
+                
+                // Clean up empty file_urls
+                if (!data.file_urls.pdf_url && !data.file_urls.html_url && data.file_urls.supplementary_urls.length === 0) {
+                    data.file_urls = null;
+                }
+            }
+            
+            evt.detail.parameters = JSON.stringify(data);
+        }
+    }
+});
+</script>
+{% endblock %}

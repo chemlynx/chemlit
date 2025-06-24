@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ChemLit Extractor{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="text-center">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">Chemical Literature Dashboard</h1>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            Extract and analyze chemical data from journal articles with automated structure recognition and metadata management.
+        </p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" 
+         hx-get="/stats/html" 
+         hx-trigger="load"
+         hx-target="#stats-container">
+        <div id="stats-container" class="contents">
+            <!-- Stats will be loaded here -->
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-chem-light rounded-lg flex items-center justify-center">
+                        <span class="text-chem-blue text-xl">📄</span>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Articles</p>
+                        <p class="text-2xl font-bold text-gray-900">Loading...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <span class="text-chem-green text-xl">🧪</span>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Compounds</p>
+                        <p class="text-2xl font-bold text-gray-900">Loading...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <span class="text-purple-600 text-xl">👥</span>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Authors</p>
+                        <p class="text-2xl font-bold text-gray-900">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Search Card -->
+        <div class="bg-white rounded-xl shadow-sm p-8 border border-gray-200 hover:shadow-md transition-shadow">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-chem-light rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <span class="text-chem-blue text-2xl">🔍</span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Search Articles</h3>
+                <p class="text-gray-600 mb-6">Find articles by DOI, author, year, or journal</p>
+                <a href="/search" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-chem-blue hover:bg-chem-dark transition-colors">
+                    Start Searching
+                    <span class="ml-2">→</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Add Article Card -->
+        <div class="bg-white rounded-xl shadow-sm p-8 border border-gray-200 hover:shadow-md transition-shadow">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <span class="text-chem-green text-2xl">➕</span>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Add New Article</h3>
+                <p class="text-gray-600 mb-6">Register a new article using its DOI</p>
+                <a href="/register" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-chem-green hover:bg-emerald-600 transition-colors">
+                    Add Article
+                    <span class="ml-2">→</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity (placeholder for future) -->
+    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+        <div class="text-center py-8 text-gray-500">
+            <p>Recent articles and compound extractions will appear here</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

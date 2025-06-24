@@ -1,0 +1,122 @@
+
+<!-- This will be returned by the HTMX request -->
+<div class="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
+    <form hx-post="/register/save" hx-target="#registration-result">
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Article Information</h3>
+            <p class="text-gray-600 text-sm">Review and edit the article metadata before saving</p>
+        </div>
+
+        <div class="space-y-6">
+            <!-- DOI (readonly) -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">DOI</label>
+                <input type="text" 
+                       name="doi" 
+                       value="{{ article.doi }}" 
+                       readonly
+                       class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-600">
+            </div>
+
+            <!-- Title -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Title *</label>
+                <textarea name="title" 
+                          rows="2" 
+                          required
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-chem-blue focus:border-chem-blue">{{ article.title }}</textarea>
+            </div>
+
+            <!-- Journal and Year -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Journal</label>
+                    <input type="text" 
+                           name="journal" 
+                           value="{{ article.journal or '' }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-chem-blue focus:border-chem-blue">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Year</label>
+                    <input type="number" 
+                           name="year" 
+                           value="{{ article.year or '' }}"
+                           min="1900" 
+                           max="2030"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-chem-blue focus:border-chem-blue">
+                </div>
+            </div>
+
+            <!-- Volume, Issue, Pages -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Volume</label>
+                    <input type="text" 
+                           name="volume" 
+                           value="{{ article.volume or '' }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-chem-blue focus:border-chem-blue">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Issue</label>
+                    <input type="text" 
+                           name="issue" 
+                           value="{{ article.issue or '' }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-chem-blue focus:border-chem-blue">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Pages</label>
+                    <input type="text" 
+                           name="pages" 
+                           value="{{ article.pages or '' }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-chem-blue focus:border-chem-blue">
+                </div>
+            </div>
+
+            <!-- Abstract -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Abstract</label>
+                <textarea name="abstract" 
+                          rows="4"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-chem-blue focus:border-chem-blue">{{ article.abstract or '' }}</textarea>
+            </div>
+
+            <!-- Authors Section -->
+            <div>
+                <h4 class="text-md font-medium text-gray-900 mb-4">Authors</h4>
+                <div id="authors-container" class="space-y-4">
+                    {% for author in authors %}
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                        <input type="text" 
+                               name="authors[{{ loop.index0 }}][first_name]" 
+                               value="{{ author.first_name }}"
+                               placeholder="First Name"
+                               class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-chem-blue focus:border-chem-blue">
+                        <input type="text" 
+                               name="authors[{{ loop.index0 }}][last_name]" 
+                               value="{{ author.last_name }}"
+                               placeholder="Last Name"
+                               class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-chem-blue focus:border-chem-blue">
+                        <input type="text" 
+                               name="authors[{{ loop.index0 }}][orcid]" 
+                               value="{{ author.orcid or '' }}"
+                               placeholder="ORCID (optional)"
+                               class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-chem-blue focus:border-chem-blue">
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Save Button -->
+            <div class="flex justify-center pt-6">
+                <button type="submit" 
+                        class="px-8 py-3 bg-chem-green text-white rounded-lg hover:bg-emerald-600 transition-colors font-medium">
+                    Register Article
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div id="registration-result" class="mt-6">
+    <!-- Registration result will appear here -->
+</div>
