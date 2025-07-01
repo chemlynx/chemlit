@@ -1,13 +1,16 @@
 """Unified ArticleService with dependency injection and transaction management."""
 
 import logging
+from collections.abc import Generator
+from contextlib import contextmanager
 from enum import Enum
 from typing import Any
 
+from fastapi import Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from chemlit_extractor.database import ArticleCRUD, get_db_session
+from chemlit_extractor.database import ArticleCRUD, get_db, get_db_session
 from chemlit_extractor.models.schemas import Article, ArticleCreate, AuthorCreate
 from chemlit_extractor.services.crossref import CrossRefService
 from chemlit_extractor.services.file_downloader import FileDownloader
@@ -16,37 +19,52 @@ from chemlit_extractor.services.file_management import FileManagementService
 logger = logging.getLogger(__name__)
 
 
-from collections.abc import Generator
-from fastapi import Depends
-from chemlit_extractor.database import get_db
+class ServiceContainer:
+    """Container for managing service lifecycle."""
+
+    def __init__(self):
+        self.services = []
+
+    def register(self, service):
+        """Register a service for cleanup."""
+        self.services.append(service)
+        return service
+
+    def close(self):
+        """Close all registered services."""
+        for service in self.services:
+            try:
+                if hasattr(service, "close"):
+                    service.close()
+            except Exception as e:
+                logger.warning(f"Error closing service: {e}")
 
 
-def get_article_service_dependency(
-    db: Session = Depends(get_db),
-) -> Generator[ArticleService, None, None]:
+# Global service container
+_service_container = ServiceContainer()
+
+
+def get_service_container() -> ServiceContainer:
+    """Get the global service container."""
+    return _service_container
+
+
+@contextmanager
+def get_article_service_context(db_session: Session | None = None):
     """
-    FastAPI dependency for ArticleService with proper cleanup.
-
-    This is the MAIN dependency function to use in FastAPI endpoints.
+    Context manager for ArticleService.
 
     Args:
-        db: Injected database session from FastAPI.
+        db_session: Optional database session.
 
     Yields:
-        ArticleService instance configured with the database session.
+        ArticleService instance.
     """
-    service = ArticleService(db_session=db)
+    service = ArticleService(db_session=db_session)
     try:
         yield service
     finally:
-        # Don't close the database session - FastAPI manages it
-        # Only close other services
-        if hasattr(service.crossref_service, "close"):
-            service.crossref_service.close()
-        if hasattr(service.file_downloader, "close"):
-            service.file_downloader.close()
-        if hasattr(service.file_manager, "close"):
-            service.file_manager.close()
+        service.close()
 
 
 class OperationType(str, Enum):
@@ -524,15 +542,28 @@ def get_article_service(
     return ArticleService(db_session=db_session)
 
 
-def get_article_service_for_endpoint() -> ArticleService:
+def get_article_service_dependency(
+    db: Session = Depends(get_db),
+) -> Generator[ArticleService, None, None]:
     """
-    Get ArticleService for FastAPI endpoint dependency injection.
+    FastAPI dependency for ArticleService.
 
-    Returns:
-        ArticleService instance that will be automatically closed.
+    This is the MAIN dependency function to use in FastAPI endpoints.
+
+    Args:
+        db: Injected database session from FastAPI.
+
+    Yields:
+        ArticleService instance configured with the database session.
     """
-    service = ArticleService()
+    service = ArticleService(db_session=db)
     try:
         yield service
     finally:
-        service.close()
+        # Only close the services, not the db session (FastAPI manages it)
+        if hasattr(service.crossref_service, "close"):
+            service.crossref_service.close()
+        if hasattr(service.file_downloader, "close"):
+            service.file_downloader.close()
+        if hasattr(service.file_manager, "close"):
+            service.file_manager.close()

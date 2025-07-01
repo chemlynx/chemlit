@@ -9,6 +9,7 @@ from chemlit_extractor.api.v1.endpoints import (
     files,
     register,
     stats,
+    ui,
 )
 
 api_router = APIRouter()
@@ -19,4 +20,7 @@ api_router.include_router(compounds.router, prefix="/compounds", tags=["compound
 api_router.include_router(files.router, prefix="/files", tags=["files"])
 api_router.include_router(stats.router, prefix="/stats", tags=["stats"])
 api_router.include_router(register.router, prefix="/register", tags=["register"])
-api_router.include_router(register.router, prefix="/register", tags=["register"])
+
+# Add UI router without prefix so routes are at root level
+ui_router = APIRouter()
+ui_router.include_router(ui.router)

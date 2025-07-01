@@ -119,6 +119,7 @@ class FileDownloadService:
             # Download file
             logger.info(f"Downloading {url} to {target_path}")
 
+            total_size = 0
             with self.client.stream("GET", url) as response:
                 response.raise_for_status()
 
@@ -126,7 +127,6 @@ class FileDownloadService:
                 content_type = response.headers.get("content-type", "")
 
                 # Stream download to file
-
                 with open(target_path, "wb") as file:
                     for chunk in response.iter_bytes(chunk_size=8192):
                         file.write(chunk)

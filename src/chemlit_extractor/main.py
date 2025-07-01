@@ -9,8 +9,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
-from chemlit_extractor.api.v1.api import api_router
+from chemlit_extractor.api.v1.api import api_router, ui_router
 from chemlit_extractor.core.config import settings
 from chemlit_extractor.database.connection import create_tables
 from chemlit_extractor.services.article_service import get_service_container
@@ -46,7 +48,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     debug=settings.debug,
-    lifespan=lifespan,  # Updated lifespan
+    lifespan=lifespan,
 )
 
 # Configure CORS middleware
@@ -62,30 +64,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API router
+# Mount static files if static directory exists
+static_dir = Path(__file__).parent.parent.parent / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+# Include routers
 app.include_router(api_router, prefix="/api/v1")
-
-
-@app.get("/", response_model=dict[str, str])
-async def root() -> dict[str, str]:
-    """Get welcome message and basic application information.
-
-    Returns:
-        dict[str, str]: Welcome message with application details including
-            version, documentation URLs, and available endpoints.
-
-    Examples:
-        >>> response = await root()
-        >>> print(response["message"])
-        Welcome to ChemLit Extractor
-    """
-    return {
-        "message": "Welcome to ChemLit Extractor",
-        "version": "0.1.0",
-        "docs_url": "/docs",
-        "api_url": "/api/v1",
-        "stats_url": "/api/v1/stats",
-    }
+app.include_router(ui_router)  # UI routes at root level
 
 
 @app.get("/health", response_model=dict[str, str])
@@ -108,6 +94,8 @@ async def health_check() -> dict[str, str]:
 
 
 if __name__ == "__main__":
+    import uvicorn
+
     uvicorn.run(
         "chemlit_extractor.main:app",
         host="127.0.0.1",
