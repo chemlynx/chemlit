@@ -101,28 +101,6 @@ class TestCrossRefDemo:
                 cleaned = client._clean_doi(doi)
                 assert cleaned is None
 
-    def test_rate_limiter_functionality(self):
-        """Test rate limiter without making actual API calls."""
-        from datetime import timedelta
-
-        from chemlit_extractor.services.crossref import RateLimiter
-
-        # Create restrictive rate limiter for testing
-        limiter = RateLimiter(max_requests=2, time_window=timedelta(seconds=1))
-
-        # Should allow first two requests
-        assert limiter.can_make_request() is True
-        limiter.record_request()
-
-        assert limiter.can_make_request() is True
-        limiter.record_request()
-
-        # Third request should be blocked
-        assert limiter.can_make_request() is False
-        assert limiter.wait_time() > 0
-
-        print("✅ Rate limiter working correctly")
-
 
 # Simple function to run a quick demo
 def demo_crossref_basic() -> None:

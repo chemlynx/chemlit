@@ -126,7 +126,7 @@ class FileDownloadService:
                 content_type = response.headers.get("content-type", "")
 
                 # Stream download to file
-                total_size = 0
+
                 with open(target_path, "wb") as file:
                     for chunk in response.iter_bytes(chunk_size=8192):
                         file.write(chunk)

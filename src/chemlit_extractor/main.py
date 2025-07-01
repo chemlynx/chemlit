@@ -6,53 +6,38 @@ and lifespan management for extracting chemical data from journal articles.
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from pathlib import Path
 
-import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from chemlit_extractor.api.v1.api import api_router
-from chemlit_extractor.api.v1.endpoints import ui  # New UI router
 from chemlit_extractor.core.config import settings
 from chemlit_extractor.database.connection import create_tables
+from chemlit_extractor.services.article_service import get_service_container
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
-    """Manage application lifespan events.
-
-    Handles startup and shutdown tasks for the FastAPI application.
-
-    Args:
-        app: The FastAPI application instance.
-
-    Yields:
-        None: Control back to the application after startup tasks.
-
-    Examples:
-        This function is automatically called by FastAPI during startup/shutdown.
-    """
+    """Manage application lifespan with service container."""
     # Startup
     create_tables()
+    container = get_service_container()
+
     print("🚀 Starting ChemLit Extractor...")
     print(f"📊 Database: {settings.database_url}")
     print("📝 Documentation: http://127.0.0.1:8000/docs")
-    print("📚 ReDoc: http://127.0.0.1:8000/redoc")
-    print("🔧 API: http://127.0.0.1:8000/api/v1")
-    print(f"📊 Database new: {settings.database_host}:{settings.database_port}")
-    print("📈 Stats: http://localhost:8000/api/v1/stats")
-    print("🖥️  Web UI: http://127.0.0.1:8000")
+    print("🔧 Services initialized")
     print("✅ ChemLit Extractor started successfully!")
 
     yield
 
     # Shutdown
+    container.close()
+    print("🔚 Services cleaned up")
     print("👋 Shutting down ChemLit Extractor...")
 
 
-# Create FastAPI app instance
+# Create FastAPI app with updated lifespan
 app = FastAPI(
     title="ChemLit Extractor",
     description="Web interface for extracting chemical data from journal articles",
@@ -61,7 +46,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     debug=settings.debug,
-    lifespan=lifespan,
+    lifespan=lifespan,  # Updated lifespan
 )
 
 # Configure CORS middleware
@@ -77,20 +62,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files (for CSS, JS, images)
-# Create a static directory if it doesn't exist
-static_dir = Path("static")
-static_dir.mkdir(exist_ok=True)
-app.mount("/static", StaticFiles(directory="static"), name="static")
 # Include API router
-app.include_router(
-    api_router,
-    prefix="/api/v1",
-)
-
-
-# Include UI router (for web pages)
-app.include_router(ui.router, prefix="", tags=["ui"])
+app.include_router(api_router, prefix="/api/v1")
 
 
 @app.get("/", response_model=dict[str, str])

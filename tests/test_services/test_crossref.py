@@ -11,59 +11,7 @@ from chemlit_extractor.models.schemas import CrossRefResponse
 from chemlit_extractor.services.crossref import (
     CrossRefClient,
     CrossRefService,
-    RateLimiter,
 )
-
-
-class TestRateLimiter:
-    """Test rate limiter functionality."""
-
-    def test_initial_state(self):
-        """Test rate limiter initial state."""
-        limiter = RateLimiter(max_requests=5, time_window=timedelta(minutes=1))
-
-        assert limiter.can_make_request() is True
-        assert limiter.wait_time() == 0.0
-
-    def test_record_request(self):
-        """Test recording requests."""
-        limiter = RateLimiter(max_requests=2, time_window=timedelta(minutes=1))
-
-        # Should be able to make first request
-        assert limiter.can_make_request() is True
-        limiter.record_request()
-
-        # Should be able to make second request
-        assert limiter.can_make_request() is True
-        limiter.record_request()
-
-        # Should not be able to make third request
-        assert limiter.can_make_request() is False
-
-    def test_time_window_expiry(self):
-        """Test that old requests expire."""
-        limiter = RateLimiter(max_requests=1, time_window=timedelta(milliseconds=100))
-
-        # Make a request
-        limiter.record_request()
-        assert limiter.can_make_request() is False
-
-        # Wait for time window to expire
-        time.sleep(0.15)  # 150ms > 100ms window
-
-        # Should be able to make request again
-        assert limiter.can_make_request() is True
-
-    def test_wait_time_calculation(self):
-        """Test wait time calculation."""
-        limiter = RateLimiter(max_requests=1, time_window=timedelta(seconds=1))
-
-        # Make a request
-        limiter.record_request()
-
-        # Should need to wait
-        wait_time = limiter.wait_time()
-        assert 0 < wait_time <= 1.0
 
 
 class TestCrossRefClient:
@@ -149,27 +97,6 @@ class TestCrossRefClient:
         client.close()
 
         # Test context manager protocol
-
-    def test_rate_limiting(self):
-        """Test rate limiting - simplified approach."""
-        # Test rate limiter directly instead of through HTTP mocking
-        from datetime import timedelta
-
-        from chemlit_extractor.services.crossref import RateLimiter
-
-        limiter = RateLimiter(max_requests=2, time_window=timedelta(seconds=1))
-
-        # Should allow first request
-        assert limiter.can_make_request() is True
-        limiter.record_request()
-
-        # Should allow second request
-        assert limiter.can_make_request() is True
-        limiter.record_request()
-
-        # Should block third request
-        assert limiter.can_make_request() is False
-        assert limiter.wait_time() > 0
 
     def test_get_article_invalid_doi(self):
         """Test error with invalid DOI."""

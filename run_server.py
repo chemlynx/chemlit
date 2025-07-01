@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Development server script for ChemLit Extractor."""
-
+import pdb
 import os
 import sys
 from pathlib import Path
@@ -19,6 +19,7 @@ def main():
     try:
         import uvicorn
 
+        breakpoint()
         from chemlit_extractor.core.config import settings
         from chemlit_extractor.main import app
 
