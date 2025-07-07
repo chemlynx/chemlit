@@ -65,13 +65,12 @@ class ArticleBase(BaseSchema):
 
     title: str = Field(..., min_length=1, max_length=1000)
     journal: str | None = Field(default=None, max_length=255)
-    # journalabb: str | None = Field(default=None, max_length=155)
     year: int | None = Field(default=None, ge=1900, le=2030)
     volume: str | None = Field(default=None, max_length=50)
     issue: str | None = Field(default=None, max_length=50)
     pages: str | None = Field(default=None, max_length=50)
     abstract: str | None = Field(default=None, max_length=10000)
-    url: HttpUrl | None = Field(default=None)
+    url: str | None = Field(default=None, max_length=500)
     publisher: str | None = Field(default=None, max_length=255)
 
 
@@ -85,6 +84,7 @@ class ArticleCreate(ArticleBase):
     def validate_doi(cls, v: str) -> str:
         """Validate and normalize DOI format."""
         doi = v.strip().lower()
+        print(f"{doi=}")
         if not doi.startswith("10."):
             raise ValueError("DOI must start with '10.'")
         return doi
@@ -291,3 +291,52 @@ class ArticleCreateResponse(BaseSchema):
     download_triggered: bool = Field(default=False)
     download_count: int = Field(default=0, ge=0)
     download_message: str | None = Field(default=None)
+
+
+class ArticleRegistrationData(BaseSchema):
+    """
+    Complete data for registering an article with authors.
+    This represents the atomic unit of article creation.
+    """
+
+    doi: str = Field(..., min_length=5, max_length=255)
+    title: str = Field(..., min_length=1, max_length=1000)
+    journal: str | None = Field(default=None, max_length=255)
+    year: int | None = Field(default=None, ge=1900, le=2030)
+    volume: str | None = Field(default=None, max_length=50)
+    issue: str | None = Field(default=None, max_length=50)
+    pages: str | None = Field(default=None, max_length=50)
+    abstract: str | None = Field(default=None, max_length=10000)
+    url: str | None = Field(default=None, max_length=500)
+    publisher: str | None = Field(default=None, max_length=255)
+    authors: list[AuthorCreate] = Field(
+        ..., min_items=1
+    )  # Required, must have at least one!
+
+    @field_validator("doi")
+    @classmethod
+    def validate_doi(cls, v: str) -> str:
+        """Validate and normalize DOI format."""
+        doi = v.strip().lower()
+        if not doi.startswith("10."):
+            raise ValueError("DOI must start with '10.'")
+        return doi
+
+    @field_validator("authors")
+    @classmethod
+    def validate_authors(cls, v: list[AuthorCreate]) -> list[AuthorCreate]:
+        """Ensure we have at least one valid author."""
+        if not v:
+            raise ValueError("Articles must have at least one author")
+
+        # Filter out any completely empty authors
+        valid_authors = [
+            author
+            for author in v
+            if author.first_name.strip() or author.last_name.strip()
+        ]
+
+        if not valid_authors:
+            raise ValueError("Articles must have at least one author with a name")
+
+        return valid_authors

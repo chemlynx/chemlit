@@ -27,41 +27,53 @@ class ArticleCRUD:
     """CRUD operations for Article model."""
 
     @staticmethod
-    def create(
-        db: Session, article: ArticleCreate, authors: list[AuthorCreate] | None = None
+    def create_with_authors(
+        db: Session, article: ArticleCreate, authors: list[AuthorCreate]
     ) -> Article:
         """
-        Create a new article with optional authors.
+        Create an article with its authors as an atomic operation.
 
-        Args:
-            db: Database session.
-            article: Article data to create.
-            authors: Optional list of authors to associate.
-
-        Returns:
-            Created article instance.
-
-        Raises:
-            ValueError: If article with DOI already exists.
+        This is the ONLY way to create articles - ensuring every article
+        has at least one author.
         """
+        if not authors:
+            raise ValueError("Cannot create article without authors")
+
         # Check if article already exists
         existing = ArticleCRUD.get_by_doi(db, article.doi)
         if existing:
             raise ValueError(f"Article with DOI {article.doi} already exists")
 
+        # Create the article
         db_article = Article(**article.model_dump())
 
-        # Add authors if provided
-        if authors:
-            for author_data in authors:
-                # Try to find existing author or create new one
-                author = AuthorCRUD.get_or_create(db, author_data)
-                db_article.authors.append(author)
+        # Process each author
+        for author_data in authors:
+            # Use get_or_create for deduplication
+            author = AuthorCRUD.get_or_create(db, author_data)
+            db_article.authors.append(author)
 
         db.add(db_article)
         db.commit()
         db.refresh(db_article)
+
         return db_article
+
+    @staticmethod
+    def create(
+        db: Session, article: ArticleCreate, authors: list[AuthorCreate] | None = None
+    ) -> Article:
+        """
+        Deprecated: Use create_with_authors instead.
+
+        This method is kept for backward compatibility but delegates
+        to create_with_authors to ensure authors are always required.
+        """
+        if not authors:
+            raise ValueError(
+                "Articles must be created with authors. Use create_with_authors method."
+            )
+        return ArticleCRUD.create_with_authors(db, article, authors)
 
     @staticmethod
     def get_by_doi(db: Session, doi: str) -> Article | None:

@@ -173,7 +173,7 @@ htmx.defineExtension('json-enc', {
                 }
             }
             
-            evt.detail.parameters = JSON.stringify(data);
+            evt.detail.body= JSON.stringify(data);
         }
     }
 });

@@ -1,4 +1,143 @@
-<!-- templates/article_preview_form.html -->
+<!-- Remove the external library and use only our custom extension -->
+<!-- Result display area -->
+<div id="registration-result" class="mt-6"></div>
+
+<script>
+  // Check if HTMX is loaded
+  if (typeof htmx === 'undefined') {
+    console.error('HTMX is not loaded!');
+  } else {
+    console.log('HTMX is loaded, version:', htmx.version);
+  }
+
+  // Define our custom HTMX extension - DON'T load external json-enc library
+  htmx.defineExtension("json-enc", {
+    onEvent: function (name, evt) {
+      console.log('Extension onEvent called:', name);
+      if (name === "htmx:configRequest") {
+        console.log('Setting Content-Type to application/json');
+        evt.detail.headers["Content-Type"] = "application/json";
+      }
+    },
+
+    encodeParameters: function(xhr, parameters, elt) {
+      // This is the KEY method that actually transforms the form data
+      try {
+        console.log("Extension encodeParameters called");
+        
+        const formData = new FormData(elt);
+        console.log("Raw FormData entries:", Array.from(formData.entries()));
+
+        // Build the new unified structure for registration_data format
+        const data = {
+          download_files: formData.get("download_files") === "true",
+          registration_data: {
+            // Extract all article fields
+            doi: formData.get("article_data[doi]"),
+            title: formData.get("article_data[title]"),
+            journal: formData.get("article_data[journal]") || null,
+            year: formData.get("article_data[year]")
+              ? parseInt(formData.get("article_data[year]"))
+              : null,
+            volume: formData.get("article_data[volume]") || null,
+            issue: formData.get("article_data[issue]") || null,
+            pages: formData.get("article_data[pages]") || null,
+            abstract: formData.get("article_data[abstract]") || null,
+            url: formData.get("article_data[url]") || null,
+            publisher: formData.get("article_data[publisher]") || null,
+            authors: [], // Will be populated below
+          },
+          file_urls: null, // Will be populated if downloads enabled
+        };
+
+        // Process authors
+        const authors = {};
+        for (const [key, value] of formData.entries()) {
+          if (key.startsWith("authors[")) {
+            const match = key.match(/authors\[(\d+)\]\[(\w+)\]/);
+            if (match) {
+              const index = match[1];
+              const field = match[2];
+              if (!authors[index]) {
+                authors[index] = {};
+              }
+              if (value && value.trim() && value !== "None") {
+                authors[index][field] = value.trim();
+              }
+            }
+          }
+        }
+
+        // Convert authors object to array and validate
+        data.registration_data.authors = Object.values(authors).filter(
+          (author) => author.first_name || author.last_name,
+        );
+
+        // Validate at least one author
+        if (data.registration_data.authors.length === 0) {
+          console.log("Validation failed: no authors");
+          // Don't throw error - just return empty to prevent submission
+          return "";
+        }
+
+        // Process file URLs if downloads enabled
+        if (data.download_files) {
+          const pdf_url = formData.get("file_urls[pdf_url]");
+          const html_url = formData.get("file_urls[html_url]");
+          const supplementary_urls = [];
+
+          for (const [key, value] of formData.entries()) {
+            if (
+              key === "file_urls[supplementary_urls][]" &&
+              value &&
+              value.trim()
+            ) {
+              supplementary_urls.push(value.trim());
+            }
+          }
+
+          if (pdf_url || html_url || supplementary_urls.length > 0) {
+            data.file_urls = {
+              pdf_url: pdf_url || null,
+              html_url: html_url || null,
+              supplementary_urls: supplementary_urls,
+            };
+          }
+        }
+
+        // Clean up empty values
+        for (const [key, value] of Object.entries(data.registration_data)) {
+          if (value === "" || value === null || value === undefined || value === "None") {
+            if (key !== "authors") {
+              delete data.registration_data[key];
+            }
+          }
+        }
+
+        console.log("Final JSON data:", data);
+        
+        // Return the JSON string - this is what gets sent as the request body
+        return JSON.stringify(data);
+        
+      } catch (error) {
+        console.error("Error in encodeParameters:", error);
+        // Return empty string to prevent malformed request
+        return "";
+      }
+    }
+  });
+
+  // Verify extension was registered
+  console.log('Available extensions after registration:', htmx.config.extensions);
+  
+  // Alternative check for extension
+  setTimeout(() => {
+    console.log('Extensions check after timeout:', htmx.config.extensions);
+    console.log('Extension registry:', htmx._extensions);
+  }, 100);
+</script>
+
+<!-- Updated form - remove the external library script -->
 <div class="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
   <h2 class="text-xl font-semibold text-gray-900 mb-6">
     Review and Edit Article Data
@@ -11,7 +150,7 @@
     hx-swap="innerHTML"
     hx-ext="json-enc"
   >
-    <!-- Hidden fields for the unified API structure -->
+    <!-- Hidden fields -->
     <input type="hidden" name="fetch_from_crossref" value="false" />
     <input
       type="hidden"
@@ -20,13 +159,12 @@
       value="false"
     />
 
-    <!-- Article Data Section -->
+    <!-- Rest of your form remains the same -->
     <div class="space-y-6">
       <h3 class="text-lg font-medium text-gray-900 pb-2 border-b">
         Article Information
       </h3>
 
-      <!-- Article fields -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="md:col-span-2">
           <label for="doi" class="block text-sm font-medium text-gray-700 mb-1">
@@ -54,9 +192,7 @@
             rows="2"
             required
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue focus:border-chem-blue"
-          >
-{{ article.title }}</textarea
-          >
+          >{{ article.title }}</textarea>
         </div>
 
         <div>
@@ -176,9 +312,7 @@
             name="article_data[abstract]"
             rows="4"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue focus:border-chem-blue"
-          >
-{{ article.abstract }}</textarea
-          >
+          >{{ article.abstract }}</textarea>
         </div>
       </div>
 
@@ -215,10 +349,10 @@
                 class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue"
               />
               <input
-                type="email"
+                type="text"
                 name="authors[{{ loop.index0 }}][email]"
                 value="{{ author.email }}"
-                placeholder="email@example.com"
+                placeholder="email@example.com (optional)"
                 class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue"
               />
             </div>
@@ -330,27 +464,26 @@
         </div>
       </div>
 
-      <!-- Action Buttons -->
-      <div class="mt-8 flex justify-between items-center pt-6 border-t">
-        <button
-          type="button"
-          onclick="location.reload()"
-          class="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-        >
-          Cancel
-        </button>
+        <!-- Action Buttons -->
+        <div class="md:col-span-2 mt-8 flex justify-between items-center pt-6 border-t">
+          <button
+            type="button"
+            onclick="location.reload()"
+            class="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+          >
+            Cancel
+          </button>
 
-        <button
-          type="submit"
-          class="px-6 py-3 bg-chem-blue text-white rounded-lg hover:bg-chem-dark transition-colors font-medium"
-        >
-          <span id="save-loading" class="htmx-indicator">
-            <span
-              class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"
-            ></span>
-          </span>
-          Register Article
-        </button>
+          <button
+            type="submit"
+            class="px-6 py-3 bg-chem-blue text-white rounded-lg hover:bg-chem-dark transition-colors font-medium"
+          >
+            <span id="save-loading" class="htmx-indicator">
+              <span class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+            </span>
+            Register Article
+          </button>
+        </div>
       </div>
     </div>
   </form>
@@ -383,9 +516,9 @@
                        name="authors[${authorCount}][orcid]" 
                        placeholder="0000-0000-0000-0000"
                        class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue">
-                <input type="email" 
+                <input type="text" 
                        name="authors[${authorCount}][email]" 
-                       placeholder="email@example.com"
+                       placeholder="email@example.com (optional)"
                        class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-chem-blue">
             </div>
             <button type="button" 
@@ -425,65 +558,102 @@
       container.appendChild(newInput);
     };
   }
+</script>
 
-  // HTMX extension for JSON encoding
-  htmx.defineExtension("json-enc", {
-    onEvent: function (name, evt) {
-      if (name === "htmx:configRequest") {
-        evt.detail.headers["Content-Type"] = "application/json";
+<script>
+  // Add HTMX response handler
+  document.body.addEventListener("htmx:afterRequest", function (evt) {
+    if (evt.detail.pathInfo.requestPath === "/api/v1/articles/") {
+      const xhr = evt.detail.xhr;
+      const targetId = evt.detail.target.id;
 
-        // Convert form data to nested JSON structure
-        const formData = new FormData(evt.detail.elt);
-        const data = {
-          fetch_from_crossref: false,
-          download_files: formData.get("download_files") === "true",
-          article_data: {},
-          file_urls: null,
-        };
+      if (xhr.status === 200 || xhr.status === 201) {
+        // Success - article created or already exists
+        const response = JSON.parse(xhr.responseText);
+        let messageClass = "bg-green-50 border-green-200 text-green-800";
+        let iconColor = "text-green-500";
+        let icon = "✓";
 
-        // Process article data
-        for (const [key, value] of formData.entries()) {
-          if (key.startsWith("article_data[")) {
-            const fieldName = key.match(/article_data\[(\w+)\]/)[1];
-            if (value) {
-              // Only include non-empty values
-              // Convert year to number if present
-              if (fieldName === "year" && value) {
-                data.article_data[fieldName] = parseInt(value);
-              } else {
-                data.article_data[fieldName] = value;
-              }
-            }
-          }
+        if (response.status === "already_exists") {
+          messageClass = "bg-blue-50 border-blue-200 text-blue-800";
+          iconColor = "text-blue-500";
+          icon = "ℹ";
         }
 
-        // Process file URLs if downloads enabled
-        if (data.download_files) {
-          data.file_urls = {
-            pdf_url: formData.get("file_urls[pdf_url]") || null,
-            html_url: formData.get("file_urls[html_url]") || null,
-            supplementary_urls: [],
-          };
-
-          // Get all supplementary URLs
-          for (const [key, value] of formData.entries()) {
-            if (key === "file_urls[supplementary_urls][]" && value) {
-              data.file_urls.supplementary_urls.push(value);
-            }
-          }
-
-          // Clean up empty file_urls
-          if (
-            !data.file_urls.pdf_url &&
-            !data.file_urls.html_url &&
-            data.file_urls.supplementary_urls.length === 0
-          ) {
-            data.file_urls = null;
-          }
-        }
-
-        evt.detail.parameters = JSON.stringify(data);
+        document.getElementById(targetId).innerHTML = `
+                <div class="${messageClass} border rounded-lg p-4 flex items-start space-x-3">
+                    <span class="${iconColor} text-2xl">${icon}</span>
+                    <div class="flex-1">
+                        <h3 class="font-semibold mb-1">${response.status === "already_exists" ? "Article Already Exists" : "Article Registered Successfully"}</h3>
+                        <p class="text-sm">${response.message}</p>
+                        ${
+                          response.article
+                            ? `
+                            <div class="mt-3 space-x-3">
+                                <a href="/search?doi=${response.article.doi}" 
+                                   class="inline-block text-sm font-medium ${response.status === "already_exists" ? "text-blue-600 hover:text-blue-800" : "text-green-600 hover:text-green-800"}">
+                                    View Article →
+                                </a>
+                                <button onclick="location.reload()" 
+                                        class="text-sm font-medium text-gray-600 hover:text-gray-800">
+                                    Register Another Article
+                                </button>
+                            </div>
+                        `
+                            : ""
+                        }
+                    </div>
+                </div>
+            `;
+      } else if (
+        xhr.status === 400 ||
+        xhr.status === 404 ||
+        xhr.status === 500
+      ) {
+        // Error
+        const response = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+        document.getElementById(targetId).innerHTML = `
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
+                    <span class="text-red-500 text-2xl">✗</span>
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-red-800 mb-1">Registration Failed</h3>
+                        <p class="text-sm text-red-700">${response.detail || "An unexpected error occurred."}</p>
+                        <button onclick="window.scrollTo(0, 0)" 
+                                class="mt-3 text-sm font-medium text-red-600 hover:text-red-800">
+                            ← Back to Form
+                        </button>
+                    </div>
+                </div>
+            `;
       }
-    },
+    }
+  });
+</script>
+
+<script>
+  // Add debugging for HTMX requests
+  document.addEventListener('htmx:beforeRequest', function(evt) {
+    console.log('=== HTMX Request Debug ===');
+    console.log('URL:', evt.detail.xhr.url);
+    console.log('Method:', evt.detail.xhr.method);
+    console.log('Content-Type:', evt.detail.xhr.getRequestHeader?.('Content-Type'));
+    console.log('Request body:', evt.detail.xhr.body);
+    console.log('============================');
+  });
+
+  document.addEventListener('htmx:responseError', function(evt) {
+    console.error('HTMX Error:', evt.detail);
+    console.error('Response status:', evt.detail.xhr.status);
+    console.error('Response text:', evt.detail.xhr.responseText);
+  });
+
+  document.addEventListener('htmx:targetError', function(evt) {
+    console.error('HTMX Target Error:', evt.detail);
+    console.error('Target element:', evt.detail.target);
+    console.error('Could not find target element with selector:', evt.detail.target);
+  });
+
+  document.addEventListener('htmx:sendError', function(evt) {
+    console.error('HTMX Send Error:', evt.detail);
   });
 </script>

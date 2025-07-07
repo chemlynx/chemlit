@@ -11,7 +11,12 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from chemlit_extractor.database import ArticleCRUD, get_db, get_db_session
-from chemlit_extractor.models.schemas import Article, ArticleCreate, AuthorCreate
+from chemlit_extractor.models.schemas import (
+    Article,
+    ArticleCreate,
+    AuthorCreate,
+    ArticleRegistrationData,
+)
 from chemlit_extractor.services.crossref import CrossRefService
 from chemlit_extractor.services.file_downloader import FileDownloader
 from chemlit_extractor.services.file_management import FileManagementService
@@ -170,147 +175,163 @@ class ArticleService:
         except Exception as e:
             logger.warning(f"Error during service cleanup: {e}")
 
-    def register_article(
+    def _handle_existing_article(
+        self,
+        existing_article: Article,
+        doi: str,
+        download_files: bool,
+        file_urls: FileUrls | None,
+    ) -> ArticleRegistrationResult:
+        """Handle the case where an article already exists."""
+        download_status = None
+        if download_files:
+            download_status = self._handle_file_downloads(doi, file_urls)
+
+        return ArticleRegistrationResult(
+            status=RegistrationStatus.ALREADY_EXISTS,
+            operation_type=OperationType.EXISTED,
+            article=existing_article,
+            source="database",
+            message=f"Article with DOI '{doi}' already exists",
+            download_status=download_status,
+            warnings=["Article already exists in database"],
+        )
+
+    def register_article_from_doi(
         self,
         doi: str,
-        fetch_metadata: bool = True,
         download_files: bool = False,
         file_urls: FileUrls | None = None,
-        article_data: ArticleCreate | None = None,
-        force_refresh: bool = False,
     ) -> ArticleRegistrationResult:
         """
-        Register an article with complete workflow management.
+        Register an article by fetching its data from CrossRef.
 
-        Args:
-            doi: Article DOI.
-            fetch_metadata: Whether to fetch metadata from CrossRef.
-            download_files: Whether to download associated files.
-            file_urls: URLs for file downloads.
-            article_data: Direct article data (used if fetch_metadata=False).
-            force_refresh: Whether to refresh existing articles.
-
-        Returns:
-            ArticleRegistrationResult with operation status and details.
+        This maintains the unity of article and author data throughout
+        the process.
         """
-        warnings = []
-
-        try:
-            # Clean and validate DOI
-            clean_doi = self._clean_doi(doi)
-            if not clean_doi:
-                return ArticleRegistrationResult(
-                    status=RegistrationStatus.ERROR,
-                    source="validation",
-                    message="Invalid DOI format",
-                    error_details="DOI must start with '10.'",
-                )
-
-            # Begin transaction
-            transaction = self.db.begin()
-
-            try:
-                # Check if article already exists
-                existing_article = ArticleCRUD.get_by_doi(self.db, clean_doi)
-
-                if existing_article and not force_refresh:
-                    # Article exists - handle files if requested
-                    download_status = None
-                    if download_files:
-                        download_status = self._handle_file_downloads(
-                            clean_doi, file_urls
-                        )
-
-                    return ArticleRegistrationResult(
-                        status=RegistrationStatus.ALREADY_EXISTS,
-                        operation_type=OperationType.EXISTED,
-                        article=existing_article,
-                        source="database",
-                        message=f"Article with DOI '{clean_doi}' already exists",
-                        download_status=download_status,
-                        warnings=["Article already exists in database"],
-                    )
-
-                # Determine article data source and fetch if needed
-                if fetch_metadata:
-                    result = self._fetch_from_crossref(clean_doi)
-                    if not result.success:
-                        transaction.rollback()
-                        return ArticleRegistrationResult(
-                            status=RegistrationStatus.NOT_FOUND,
-                            source="crossref",
-                            message=result.message,
-                            error_details=result.error_details,
-                        )
-
-                    article_create_data = result.article_data
-                    authors_data = result.authors_data
-                    source = "crossref"
-                    operation_type = OperationType.FETCHED
-
-                elif article_data:
-                    article_create_data = article_data
-                    authors_data = []
-                    source = "direct"
-                    operation_type = OperationType.CREATED
-
-                else:
-                    transaction.rollback()
-                    return ArticleRegistrationResult(
-                        status=RegistrationStatus.ERROR,
-                        source="validation",
-                        message="Either fetch_metadata must be True or article_data must be provided",
-                        error_details="No data source specified",
-                    )
-
-                # Create or update article
-                if existing_article and force_refresh:
-                    # Update existing article
-                    article = self._update_article(
-                        existing_article, article_create_data, authors_data
-                    )
-                    operation_type = OperationType.UPDATED
-                else:
-                    # Create new article
-                    article = ArticleCRUD.create(
-                        self.db, article_create_data, authors_data
-                    )
-
-                # Commit the database transaction
-                transaction.commit()
-                logger.info(f"Successfully registered article: {clean_doi}")
-
-                # Handle file downloads (outside transaction)
-                download_status = None
-                if download_files:
-                    download_status = self._handle_file_downloads(clean_doi, file_urls)
-
-                # Build success message
-                message = self._build_success_message(operation_type, download_status)
-
-                return ArticleRegistrationResult(
-                    status=RegistrationStatus.SUCCESS,
-                    operation_type=operation_type,
-                    article=article,
-                    source=source,
-                    message=message,
-                    download_status=download_status,
-                    warnings=warnings,
-                )
-
-            except Exception as e:
-                transaction.rollback()
-                logger.error(f"Transaction failed for DOI {clean_doi}: {e}")
-                raise
-
-        except Exception as e:
-            logger.error(f"Article registration failed for {doi}: {e}")
+        # Clean DOI
+        clean_doi = self._clean_doi(doi)
+        if not clean_doi:
             return ArticleRegistrationResult(
                 status=RegistrationStatus.ERROR,
-                source="service",
-                message=f"Registration failed: {str(e)}",
+                source="validation",
+                message="Invalid DOI format",
+                error_details="DOI must start with '10.'",
+            )
+
+        # Check if already exists
+        existing = ArticleCRUD.get_by_doi(self.db, clean_doi)
+        if existing:
+            return self._handle_existing_article(
+                existing, clean_doi, download_files, file_urls
+            )
+
+        # Fetch from CrossRef - this gets article AND authors together
+        fetch_result = self._fetch_from_crossref(clean_doi)
+        if not fetch_result.success:
+            return ArticleRegistrationResult(
+                status=RegistrationStatus.NOT_FOUND,
+                source="crossref",
+                message=fetch_result.message,
+                error_details=fetch_result.error_details,
+            )
+
+        # Create the article with its authors as an atomic operation
+        try:
+            article = ArticleCRUD.create_with_authors(
+                self.db, fetch_result.article_data, fetch_result.authors_data
+            )
+
+            # Handle file downloads if requested
+            download_status = None
+            if download_files:
+                download_status = self._handle_file_downloads(clean_doi, file_urls)
+
+            return ArticleRegistrationResult(
+                status=RegistrationStatus.SUCCESS,
+                operation_type=OperationType.FETCHED,
+                article=article,
+                source="crossref",
+                message="Article fetched from CrossRef and registered successfully",
+                download_status=download_status,
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to create article {clean_doi}: {e}")
+            return ArticleRegistrationResult(
+                status=RegistrationStatus.ERROR,
+                source="database",
+                message=f"Failed to save article: {str(e)}",
                 error_details=str(e),
-                warnings=warnings,
+            )
+
+    def register_article_with_data(
+        self,
+        registration_data: ArticleRegistrationData,
+        download_files: bool = False,
+        file_urls: FileUrls | None = None,
+    ) -> ArticleRegistrationResult:
+        """
+        Register an article with directly provided data.
+
+        The registration_data contains both article and author information
+        as a unified whole.
+        """
+        clean_doi = self._clean_doi(registration_data.doi)
+
+        # Check if already exists
+        existing = ArticleCRUD.get_by_doi(self.db, clean_doi)
+        if existing:
+            return self._handle_existing_article(
+                existing, clean_doi, download_files, file_urls
+            )
+
+        # Convert registration data to separate article and author objects
+        # Note: We're doing this conversion here in the service layer,
+        # not in the endpoint or form processing
+        article_data = ArticleCreate(
+            doi=registration_data.doi,
+            title=registration_data.title,
+            journal=registration_data.journal,
+            year=registration_data.year,
+            volume=registration_data.volume,
+            issue=registration_data.issue,
+            pages=registration_data.pages,
+            abstract=registration_data.abstract,
+            url=registration_data.url,
+            publisher=registration_data.publisher,
+        )
+
+        # Authors are already validated by the schema
+        authors_data = registration_data.authors
+
+        try:
+            # Create article and authors together
+            article = ArticleCRUD.create_with_authors(
+                self.db, article_data, authors_data
+            )
+
+            # Handle file downloads if requested
+            download_status = None
+            if download_files:
+                download_status = self._handle_file_downloads(clean_doi, file_urls)
+
+            return ArticleRegistrationResult(
+                status=RegistrationStatus.SUCCESS,
+                operation_type=OperationType.CREATED,
+                article=article,
+                source="direct",
+                message=f"Article registered successfully with {len(authors_data)} authors",
+                download_status=download_status,
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to create article {clean_doi}: {e}")
+            return ArticleRegistrationResult(
+                status=RegistrationStatus.ERROR,
+                source="database",
+                message=f"Failed to save article: {str(e)}",
+                error_details=str(e),
             )
 
     def get_article(self, doi: str) -> Article | None:

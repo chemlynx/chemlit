@@ -19,6 +19,7 @@ from chemlit_extractor.models.schemas import (
     CrossRefResponse,
     DatabaseStats,
     ExtractionMethod,
+    ArticleRegistrationData,
 )
 
 __all__ = [
@@ -40,4 +41,5 @@ __all__ = [
     "CrossRefResponse",
     "DatabaseStats",
     "ExtractionMethod",
+    "ArticleRegistrationData",
 ]
