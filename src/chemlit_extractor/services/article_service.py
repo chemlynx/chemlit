@@ -14,8 +14,8 @@ from chemlit_extractor.database import ArticleCRUD, get_db, get_db_session
 from chemlit_extractor.models.schemas import (
     Article,
     ArticleCreate,
-    AuthorCreate,
     ArticleRegistrationData,
+    AuthorCreate,
 )
 from chemlit_extractor.services.crossref import CrossRefService
 from chemlit_extractor.services.file_downloader import FileDownloader
@@ -565,7 +565,7 @@ def get_article_service(
 
 def get_article_service_dependency(
     db: Session = Depends(get_db),
-) -> Generator[ArticleService, None, None]:
+) -> Generator[ArticleService]:
     """
     FastAPI dependency for ArticleService.
 

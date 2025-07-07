@@ -3,6 +3,7 @@
 from chemlit_extractor.models.schemas import (
     Article,
     ArticleCreate,
+    ArticleRegistrationData,
     ArticleSearchQuery,
     ArticleSearchResponse,
     ArticleUpdate,
@@ -19,7 +20,6 @@ from chemlit_extractor.models.schemas import (
     CrossRefResponse,
     DatabaseStats,
     ExtractionMethod,
-    ArticleRegistrationData,
 )
 
 __all__ = [

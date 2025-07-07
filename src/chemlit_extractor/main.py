@@ -6,11 +6,11 @@ and lifespan management for extracting chemical data from journal articles.
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
 
 from chemlit_extractor.api.v1.api import api_router, ui_router
 from chemlit_extractor.core.config import settings

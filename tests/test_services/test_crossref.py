@@ -1,7 +1,6 @@
 """Test CrossRef API client."""
 
 import time
-from datetime import timedelta
 from unittest.mock import MagicMock, Mock, patch
 
 import httpx

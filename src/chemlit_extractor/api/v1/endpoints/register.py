@@ -237,7 +237,6 @@ def _build_status_message(article: Article, file_status: dict) -> str:
 from fastapi import Form
 from fastapi.templating import Jinja2Templates
 
-
 router = APIRouter(tags=["registration"])
 templates = Jinja2Templates(directory="templates")
 

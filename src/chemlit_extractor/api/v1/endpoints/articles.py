@@ -1,18 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, Request
-from fastapi.responses import JSONResponse
+import json
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field, ValidationError, model_validator
 from sqlalchemy.orm import Session
-import logging
-import json
 
-from chemlit_extractor.database import CompoundCRUD, get_db
+from chemlit_extractor.database import get_db
 from chemlit_extractor.models.schemas import (
     Article,
-    ArticleCreate,
+    ArticleRegistrationData,
     ArticleSearchQuery,
     ArticleSearchResponse,
-    AuthorCreate,
-    ArticleRegistrationData,
 )
 from chemlit_extractor.services.article_service import (
     ArticleRegistrationResult,
@@ -72,7 +70,7 @@ async def create_article(
         if "application/json" in content_type:
             try:
                 data = json.loads(body.decode())
-                logger.info(f"Successfully parsed JSON data")
+                logger.info("Successfully parsed JSON data")
                 logger.info(f"Data keys: {list(data.keys())}")
 
                 # Log the registration_data structure
@@ -93,7 +91,7 @@ async def create_article(
         # Create and validate request
         try:
             article_request = ArticleCreateRequest(**data)
-            logger.info(f"Successfully created ArticleCreateRequest")
+            logger.info("Successfully created ArticleCreateRequest")
         except ValidationError as e:
             logger.error(f"Validation error: {e.errors()}")
             raise HTTPException(
@@ -112,7 +110,7 @@ async def create_article(
             )
         else:
             # Direct registration with provided data
-            logger.info(f"Processing direct registration")
+            logger.info("Processing direct registration")
             result = article_service.register_article_with_data(
                 registration_data=article_request.registration_data,
                 download_files=article_request.download_files,

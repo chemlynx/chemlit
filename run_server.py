@@ -17,6 +17,7 @@ def main():
     """Run the development server."""
     try:
         import uvicorn
+
         from chemlit_extractor.core.config import settings
         from chemlit_extractor.main import app
 
